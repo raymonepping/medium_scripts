@@ -1,55 +1,49 @@
-#!/bin/bash
-
-# transform_docker.sh
-# Converts a Docker Compose service to a Nomad job file (.hcl)
-# Usage: ./transform_docker.sh --service <name> --image <image> [--force] [--dry-run] [--register]
-
+#!/opt/homebrew/bin/bash
 set -euo pipefail
 
-# ---- Load .env if present ----
-if [[ -f .env ]]; then
+# 🧪 Load environment
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "${SCRIPT_DIR}/.env" ]]; then
   set -a
-  grep -E '^[A-Z_][A-Z0-9_]*=' .env | sed 's/\r$//' >.env.cleaned
-  source .env.cleaned
-  rm .env.cleaned
+  source "${SCRIPT_DIR}/.env"
   set +a
+else
+  echo "❌ .env file missing next to transform_docker.sh"
+  exit 1
 fi
 
-NOMAD_ADDR="${NOMAD_ADDR:-http://localhost:4646}"
+DOCKERHUB_REPO="${DOCKERHUB_REPO:-}"
+if [[ -z "$DOCKERHUB_REPO" ]]; then
+  echo "❌ DOCKERHUB_REPO not set in .env"
+  exit 1
+fi
 
-# ---- Colors & Formatting ----
-bold=$(tput bold 2>/dev/null || true)
-normal=$(tput sgr0 2>/dev/null || true)
-red=$(tput setaf 1 2>/dev/null || true)
-green=$(tput setaf 2 2>/dev/null || true)
-yellow=$(tput setaf 3 2>/dev/null || true)
-reset=$(tput sgr0 2>/dev/null || true)
+# 🚀 Defaults
+COMPOSE_FILE="docker-compose.yml"
+MODULE_DIR="./modules"
+NETWORK_MODULE="$MODULE_DIR/network"
+STORAGE_MODULE="$MODULE_DIR/storage"
+IMAGES_MODULE="$MODULE_DIR/images"
+COMPUTE_MODULE="$MODULE_DIR/compute"
 
-# ---- Parse Arguments ----
-FORCE=false
-DRY_RUN=false
-REGISTER=false
+PROVIDER="docker"
+BUILD_ENABLED=false
 
+# 🧠 Image mapping
+declare -A SERVICE_IMAGE_VARS
+
+# 🔐 Global map to avoid unbound errors
+declare -A MERGED_ENV_VARS
+
+# 🎮 Parse CLI flags
 while [[ $# -gt 0 ]]; do
   case "$1" in
-  --service)
-    SERVICE="$2"
+  --provider)
+    PROVIDER="$2"
     shift 2
     ;;
-  --image)
-    IMAGE="$2"
-    shift 2
-    ;;
-  --force)
-    FORCE=true
-    shift
-    ;;
-  --dry-run)
-    DRY_RUN=true
-    shift
-    ;;
-  --register)
-    REGISTER=true
+  --build)
+    BUILD_ENABLED=true
     shift
     ;;
   *)
@@ -59,177 +53,274 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# ---- Validations ----
-if [[ -z "${SERVICE:-}" || -z "${IMAGE:-}" ]]; then
-  echo "❌ ${red}Error: Both --service and --image must be provided.${reset}"
-  echo "Usage: ./transform_docker.sh --service <name> --image <image>"
-  exit 1
-fi
+echo ""
+echo "🐳  Provider: $PROVIDER"
+echo "🔧 Build enabled: $BUILD_ENABLED"
+echo "🔄 Parsing $COMPOSE_FILE into Terraform modules..."
+echo ""
 
-if ! command -v yq &>/dev/null; then
-  echo "❌ ${red}yq is required but not installed. Install: https://github.com/mikefarah/yq${reset}"
-  exit 1
-fi
+mkdir -p "$NETWORK_MODULE" "$COMPUTE_MODULE" "$STORAGE_MODULE" "$IMAGES_MODULE"
 
-COMPOSE_FILE="docker-compose.yml"
-if [[ ! -f "$COMPOSE_FILE" ]]; then
-  echo "❌ ${red}docker-compose.yml not found in current directory.${reset}"
-  exit 1
-fi
-
-# ---- Paths ----
-TARGET_DIR="./$SERVICE"
-TARGET_HCL="$TARGET_DIR/$SERVICE.hcl"
-mkdir -p "$TARGET_DIR"
-
-# ---- Extract Compose Data ----
-PORTS=$(yq ".services.\"$SERVICE\".ports[]" "$COMPOSE_FILE" 2>/dev/null || echo "")
-ENVS=$(yq ".services.\"$SERVICE\".environment[]" "$COMPOSE_FILE" 2>/dev/null || echo "")
-VOLUMES=$(yq ".services.\"$SERVICE\".volumes[]" "$COMPOSE_FILE" 2>/dev/null || echo "")
-PRIVILEGED=$(yq ".services.\"$SERVICE\".privileged" "$COMPOSE_FILE" 2>/dev/null || echo "false")
-CAP_ADDS=$(yq ".services.\"$SERVICE\".cap_add[]" "$COMPOSE_FILE" 2>/dev/null || echo "")
-
-# ---- Compose HCL blocks ----
-
-# --- Map container port numbers to friendly names
-get_port_name() {
-  case "$1" in
-  22) echo "ssh" ;;
-  80) echo "http" ;;
-  443) echo "https" ;;
-  3306) echo "mysql" ;;
-  5432) echo "postgres" ;;
-  6379) echo "redis" ;;
-  27017) echo "mongo" ;;
-  *) echo "port$1" ;;
-  esac
-}
-
-PORT_BLOCK=""
-PORT_LIST=""
-
-for port in $PORTS; do
-  [[ "$port" == *":"* ]] || continue
-  HOST_PORT=$(echo "$port" | cut -d':' -f1)
-  CONTAINER_PORT=$(echo "$port" | cut -d':' -f2)
-  PORT_NAME=$(get_port_name "$CONTAINER_PORT")
-  PORT_BLOCK+="
-      port \"$PORT_NAME\" {
-        static = $HOST_PORT
-        to     = $CONTAINER_PORT
-      }"
-  PORT_LIST+="\"$PORT_NAME\", "
-done
-PORT_LIST=${PORT_LIST%, }
-
-ENV_BLOCK=""
-for env in $ENVS; do
-  ENV_BLOCK+="        $env\n"
-done
-
-# Format Docker-style volume mounts
-VOLUME_ENTRIES=""
-for vol in $VOLUMES; do
-  CLEANED=$(echo "$vol" | cut -d':' -f1,2)
-  VOLUME_ENTRIES+="\"$CLEANED\", "
-done
-VOLUME_ENTRIES=${VOLUME_ENTRIES%, }
-
-# Privileged/cap_add
-PRIV_BLOCK=""
-if [[ "$PRIVILEGED" == "true" ]]; then
-  PRIV_BLOCK+="        privileged = true\n"
-fi
-if [[ -n "$CAP_ADDS" ]]; then
-  PRIV_BLOCK+="        cap_add = ["
-  for cap in $CAP_ADDS; do
-    PRIV_BLOCK+="\"$cap\", "
-  done
-  PRIV_BLOCK="${PRIV_BLOCK%, }]\n"
-fi
-
-# ---- Overwrite confirmation ----
-if [[ -f "$TARGET_HCL" && "$FORCE" != true ]]; then
-  read -p "⚠️  $TARGET_HCL exists. Overwrite? [y/N]: " confirm
-  [[ "$confirm" =~ ^[Yy]$ ]] || {
-    echo "❌ Aborted."
-    exit 1
-  }
-fi
-
-# ---- Output path ----
-if [[ "$DRY_RUN" == true ]]; then
-  echo "🔍 ${yellow}Dry run mode enabled. Generated HCL will be printed:${reset}"
-  OUTPUT_TARGET="/dev/stdout"
-else
-  OUTPUT_TARGET="$TARGET_HCL"
-fi
-
-# ---- Generate Nomad HCL ----
-cat >"$OUTPUT_TARGET" <<EOF
-job "$SERVICE" {
-  datacenters = ["dc1"]
-
-  group "$SERVICE-group" {
-    network {
-      $PORT_BLOCK
-    }
-
-    task "$SERVICE-task" {
-      driver = "docker"
-
-      config {
-        image = "$IMAGE"
-        ports = [$PORT_LIST]
-        volumes = [$VOLUME_ENTRIES]
-$(echo -e "$PRIV_BLOCK")
-      }
-
-      env = {
-$(echo -e "$ENV_BLOCK")
-      }
-
-      resources {
-        cpu    = 500
-        memory = 256
-      }
+# 🧱 Provider block
+MODULE_PROVIDER_TF=$(
+  cat <<EOF
+terraform {
+  required_providers {
+    docker = {
+      source  = "kreuzwerker/docker"
+      version = "~> 3.0"
     }
   }
 }
 EOF
+)
 
-if [[ "$DRY_RUN" == false ]]; then
-  echo -e "✅ ${green}Nomad job created:${reset} $TARGET_HCL"
+for mod in "$NETWORK_MODULE" "$COMPUTE_MODULE" "$STORAGE_MODULE" "$IMAGES_MODULE"; do
+  echo "$MODULE_PROVIDER_TF" >"$mod/provider.tf"
+done
+
+# 🌐 Network
+NETWORK_NAME=$(yq '.networks | keys | .[0] // ""' "$COMPOSE_FILE")
+if [[ -n "$NETWORK_NAME" ]]; then
+  cat >"$NETWORK_MODULE/${PROVIDER}_network.tf" <<EOF
+resource "${PROVIDER}_network" "$NETWORK_NAME" {
+  name = "$NETWORK_NAME"
+}
+EOF
+else
+  NETWORK_NAME="bridge"
 fi
 
-# ---- Optional README.md ----
-if [[ "$DRY_RUN" != true ]]; then
-  read -p "📝 Generate README.md alongside the job file? [y/N]: " readme
-  if [[ "$readme" =~ ^[Yy]$ ]]; then
-    cat >"$TARGET_DIR/README.md" <<EOM
-# $SERVICE Nomad Job
+# 💾 Volumes (safe check)
+if [[ $(yq e '.volumes' "$COMPOSE_FILE") != "null" ]]; then
+  yq e '.volumes | keys | .[]' "$COMPOSE_FILE" | while read -r VOL; do
+    cat >"$STORAGE_MODULE/${VOL}_volume.tf" <<EOF
+resource "${PROVIDER}_volume" "$VOL" {
+  name = "$VOL"
+}
+EOF
+  done
+fi
 
-This Nomad job runs the containerized service **$SERVICE** using the image:
+# ⚙️ Services
+for SERVICE in $(yq -r '.services | keys | .[]' "$COMPOSE_FILE"); do
+  MERGED_ENV_VARS=() # 🔄 Reset map at start of loop
+  SERVICE_FILE="$COMPUTE_MODULE/${SERVICE}.tf"
+  IMAGE=$(yq ".services.${SERVICE}.image // \"null\"" "$COMPOSE_FILE")
+  BUILD_CONTEXT=$(yq ".services.${SERVICE}.build.context // \"\"" "$COMPOSE_FILE")
+  # ENV_FILE=$(yq ".services.${SERVICE}.env_file[0] // \"\"" "$COMPOSE_FILE")
+  RAW_ENV_PATH=$(yq -r ".services.${SERVICE}.env_file // \"\"" "$COMPOSE_FILE")
 
-\`\`\`
-image: $IMAGE
-\`\`\`
+  if [[ -z "$RAW_ENV_PATH" || "$RAW_ENV_PATH" == "null" ]]; then
+    ENV_FILE=""
+  else
+    # Explicitly handle the array form of env_file
+    if yq -e ".services.${SERVICE}.env_file | type == \"!!seq\"" "$COMPOSE_FILE" >/dev/null; then
+      RAW_ENV_PATH=$(yq -r ".services.${SERVICE}.env_file[0]" "$COMPOSE_FILE")
+    fi
 
-## Generated from Docker Compose
+    # Remove leading "./" to avoid duplication
+    RAW_ENV_PATH="${RAW_ENV_PATH#./}"
 
-This job was auto-generated using \`transform_docker.sh\`.
-
-You can run it with:
-\`\`\`
-nomad job run $SERVICE.hcl
-\`\`\`
-EOM
-    echo "📄 README.md created in $TARGET_DIR"
+    # Absolute path resolution relative to compose file
+    ENV_FILE="$(
+      cd "$(dirname "$COMPOSE_FILE")"
+      pwd
+    )/${RAW_ENV_PATH}"
   fi
-fi
 
-# ---- Register job with Nomad ----
-if [[ "$REGISTER" == true && "$DRY_RUN" != true ]]; then
-  echo -e "🚀 Registering job with Nomad at ${yellow}$NOMAD_ADDR${reset}..."
-  NOMAD_ADDR="$NOMAD_ADDR" nomad job run "$TARGET_HCL"
-fi
+  VOLUME_MOUNT=$(yq ".services.${SERVICE}.volumes[0] // \"\"" "$COMPOSE_FILE")
+  PORTS=$(yq ".services.${SERVICE}.ports // []" "$COMPOSE_FILE" | yq 'join(", ")')
+  TTY=$(yq ".services.${SERVICE}.tty // false" "$COMPOSE_FILE")
+  STDIN_OPEN=$(yq ".services.${SERVICE}.stdin_open // false" "$COMPOSE_FILE")
+  PRIVILEGED=$(yq ".services.${SERVICE}.privileged // false" "$COMPOSE_FILE")
+  CAP_ADD=$(yq ".services.${SERVICE}.cap_add // []" "$COMPOSE_FILE")
+
+  if [[ "$IMAGE" == "null" && "$BUILD_CONTEXT" == "" ]]; then
+    echo "⚠️  Warning: No image or build context defined for service: $SERVICE"
+    continue
+  fi
+
+  # 🔨 Build if needed
+  if [[ "$BUILD_ENABLED" == "true" && "$BUILD_CONTEXT" != "" ]]; then
+    echo "🔧 Building image for $SERVICE from $BUILD_CONTEXT ..."
+    VERSION_FILE="${BUILD_CONTEXT}/.image_version"
+    if [[ -f "$VERSION_FILE" ]]; then
+      VERSION=$(cat "$VERSION_FILE")
+      IFS='.' read -r major minor patch <<<"${VERSION:-0.0.0}"
+    else
+      major=0
+      minor=1
+      patch=0
+    fi
+    patch=$((patch + 1))
+    NEW_VERSION="${major}.${minor}.${patch}"
+    echo "$NEW_VERSION" >"$VERSION_FILE"
+
+    IMAGE="${DOCKERHUB_REPO}/${SERVICE}:${NEW_VERSION}"
+    docker build -t "$IMAGE" -t "${DOCKERHUB_REPO}/${SERVICE}:latest" "$BUILD_CONTEXT"
+    docker push "$IMAGE"
+    docker push "${DOCKERHUB_REPO}/${SERVICE}:latest"
+    echo "📦 Built and pushed: $IMAGE"
+  fi
+
+  # 🖼 Write docker_image + output
+  IMAGE_OUTPUT_KEY=$(echo "$SERVICE" | tr '-' '_')
+  SERVICE_IMAGE_VARS["$SERVICE"]="$IMAGE_OUTPUT_KEY"
+
+  cat >"$IMAGES_MODULE/${SERVICE}.tf" <<EOF
+resource "docker_image" "$SERVICE" {
+  name = "$IMAGE"
+}
+EOF
+
+  echo "output \"${IMAGE_OUTPUT_KEY}_image\" {
+  value = docker_image.${SERVICE}.name
+  }" >>"$IMAGES_MODULE/outputs.tf"
+
+  # 🧱 Container definition
+  echo "resource \"docker_container\" \"$SERVICE\" {" >"$SERVICE_FILE"
+  echo "  name  = \"$SERVICE\"" >>"$SERVICE_FILE"
+  echo "  image = var.${IMAGE_OUTPUT_KEY}_image" >>"$SERVICE_FILE"
+
+  if [[ "$PORTS" != "" ]]; then
+    for port in $(echo "$PORTS" | sed 's/, /\n/g'); do
+      echo "  ports {" >>"$SERVICE_FILE"
+      echo "    internal = ${port##*:}" >>"$SERVICE_FILE"
+      echo "    external = ${port%%:*}" >>"$SERVICE_FILE"
+      echo "  }" >>"$SERVICE_FILE"
+    done
+  fi
+
+  # 🧊 Merge env_file + environment block into a single env list
+  if [[ -n "$ENV_FILE" && -f "$ENV_FILE" ]]; then
+    while IFS='=' read -r KEY VALUE; do
+      [[ -z "$KEY" || "$KEY" =~ ^# ]] && continue
+      MERGED_ENV_VARS["$KEY"]="$VALUE"
+    done <"$ENV_FILE"
+  fi
+
+  INLINE_ENV=$(yq -r ".services.${SERVICE}.environment // {}" "$COMPOSE_FILE")
+  if [[ "$INLINE_ENV" != "{}" ]]; then
+    while IFS= read -r LINE; do
+      KEY=$(echo "$LINE" | cut -d':' -f1 | xargs)
+      VALUE=$(echo "$LINE" | cut -d':' -f2- | xargs)
+      MERGED_ENV_VARS["$KEY"]="$VALUE"
+    done < <(echo "$INLINE_ENV" | yq -r 'to_entries[] | "\(.key):\(.value)"')
+  fi
+
+  if [[ ${#MERGED_ENV_VARS[@]} -gt 0 ]]; then
+    echo "  env = [" >>"$SERVICE_FILE"
+    for KEY in "${!MERGED_ENV_VARS[@]}"; do
+      echo "    \"${KEY}=${MERGED_ENV_VARS[$KEY]}\"," >>"$SERVICE_FILE"
+    done
+    echo "  ]" >>"$SERVICE_FILE"
+  fi
+
+  if [[ "$VOLUME_MOUNT" != "" ]]; then
+    VOL_SRC=$(echo "$VOLUME_MOUNT" | cut -d':' -f1)
+    VOL_DST=$(echo "$VOLUME_MOUNT" | cut -d':' -f2 | cut -d':' -f1)
+    echo "  volumes {" >>"$SERVICE_FILE"
+    echo "    volume_name    = \"$VOL_SRC\"" >>"$SERVICE_FILE"
+    echo "    container_path = \"$VOL_DST\"" >>"$SERVICE_FILE"
+    [[ "$VOLUME_MOUNT" == *":ro" ]] && echo "    read_only = true" >>"$SERVICE_FILE"
+    echo "  }" >>"$SERVICE_FILE"
+  fi
+
+  if [[ "$CAP_ADD" != "[]" ]]; then
+    echo "  capabilities {" >>"$SERVICE_FILE"
+    echo "    add = [$(echo "$CAP_ADD" | yq 'map("\"" + . + "\"") | join(", ")')]" >>"$SERVICE_FILE"
+    echo "  }" >>"$SERVICE_FILE"
+  fi
+
+  [[ "$TTY" == "true" ]] && echo "  tty = true" >>"$SERVICE_FILE"
+  [[ "$STDIN_OPEN" == "true" ]] && echo "  stdin_open = true" >>"$SERVICE_FILE"
+  [[ "$PRIVILEGED" == "true" ]] && echo "  privileged = true" >>"$SERVICE_FILE"
+
+  echo "  networks_advanced {" >>"$SERVICE_FILE"
+  echo "    name = \"$NETWORK_NAME\"" >>"$SERVICE_FILE"
+  echo "  }" >>"$SERVICE_FILE"
+  echo "}" >>"$SERVICE_FILE"
+
+done
+
+# 📦 Add variables for all container image vars
+: >"$COMPUTE_MODULE/variables.tf"
+for SERVICE in "${!SERVICE_IMAGE_VARS[@]}"; do
+  VAR_NAME="${SERVICE_IMAGE_VARS[$SERVICE]}_image"
+  echo "variable \"$VAR_NAME\" {
+  description = \"Docker image for $SERVICE\"
+  type        = string
+}" >>"$COMPUTE_MODULE/variables.tf"
+done
+
+# 📤 Add outputs for container name and IP
+: >"$COMPUTE_MODULE/outputs.tf"
+for SERVICE in "${!SERVICE_IMAGE_VARS[@]}"; do
+  echo "output \"${SERVICE}_name\" {
+  value = docker_container.${SERVICE}.name
+}" >>"$COMPUTE_MODULE/outputs.tf"
+done
+
+# 🧾 Root Terraform Files
+cat >main.tf <<EOF
+module "network" {
+  source = "./modules/network"
+}
+
+module "storage" {
+  source = "./modules/storage"
+}
+
+module "images" {
+  source = "./modules/images"
+}
+
+module "compute" {
+  source = "./modules/compute"
+EOF
+
+for SERVICE in "${!SERVICE_IMAGE_VARS[@]}"; do
+  VAR="${SERVICE_IMAGE_VARS[$SERVICE]}_image"
+  echo "  $VAR = module.images.$VAR" >>main.tf
+done
+
+echo "}" >>main.tf
+
+cat >provider.tf <<EOF
+$MODULE_PROVIDER_TF
+EOF
+
+cat >variables.tf <<EOF
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+  default     = ""
+}
+
+variable "project_name" {
+  description = "Name of the project"
+  type        = string
+  default     = ""
+}
+EOF
+
+# 📤 Root outputs for HCP visibility
+: >outputs.tf
+for SERVICE in "${!SERVICE_IMAGE_VARS[@]}"; do
+  echo "output \"${SERVICE}_name\" {
+  value = module.compute.${SERVICE}_name
+}" >>outputs.tf
+done
+
+# 📦 Also expose image names from image module
+for SERVICE in "${!SERVICE_IMAGE_VARS[@]}"; do
+  VAR="${SERVICE_IMAGE_VARS[$SERVICE]}_image"
+  echo "output \"$VAR\" {
+  value = module.images.$VAR
+}" >>outputs.tf
+done
+
+echo ""
+echo "✅ All modules created!"
+echo "🌟 You're ready. Run: terraform init && terraform apply"
