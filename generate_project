@@ -17,6 +17,7 @@ fi
 PROJECT_NAME="$2"
 SANITY_CHECK_CMD="sanity_check"
 DEFAULT_GITIGNORE="$HOME/.gitignore_global"
+DEFAULT_DOCKERIGNORE="$HOME/.dockerignore_global"
 COMMIT_SCRIPT_NAME="commit_gh"
 COMMIT_SCRIPT_FALLBACK="$HOME/Documents/GitHub/---scripting/Couchbase/Docker/$COMMIT_SCRIPT_NAME"
 
@@ -41,6 +42,29 @@ elif [[ -f "$COMMIT_SCRIPT_FALLBACK" ]]; then
   cp "$COMMIT_SCRIPT_FALLBACK" .gitignore
 else
   echo "# Auto-generated .gitignore" > .gitignore
+fi
+
+# 📄 .dockerignore (fallback logic)
+if [[ -f "$DEFAULT_DOCKERIGNORE" ]]; then
+  echo "📁 Using global .dockerignore from $DEFAULT_DOCKERIGNORE"
+  cp "$DEFAULT_DOCKERIGNORE" .dockerignore
+elif [[ -f "$COMMIT_SCRIPT_FALLBACK" ]]; then
+  echo "📁 Using fallback .dockerignore from $COMMIT_SCRIPT_FALLBACK"
+  cp "$COMMIT_SCRIPT_FALLBACK" .dockerignore
+else
+  echo "⚠️  No default or fallback .dockerignore found. Creating minimal one."
+  echo "# Auto-generated .dockerignore" > .dockerignore
+fi
+
+# ✅ Validate resulting ignore files (quiet mode to avoid noise)
+if command -v validate_ignore &>/dev/null; then
+  echo ""
+  echo "🔎 Running post-generation validation on ignore files..."
+  SANITY_MD="sanity_check.md" validate_ignore --quiet || true
+  echo ""
+else
+  echo "⚠️  'validate_ignore' command not found — skipping validation"
+  echo ""
 fi
 
 # 📄 Init files with full license and README
@@ -92,12 +116,11 @@ if command -v "$SANITY_CHECK_CMD" &>/dev/null; then
 #!/bin/bash
 set -euo pipefail
 
-# Only run sanity_check if files are staged
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.sh$|\.py$|\.js$|\.tf$|Dockerfile$' || true)
 
-if [[ -n "\$STAGED_FILES" ]]; then
+if [[ -n "$STAGED_FILES" ]]; then
   echo "🔍 Pre-commit: running sanity_check on staged files..."
-  echo "\$STAGED_FILES" | xargs sanity_check --fix --quiet
+  echo "$STAGED_FILES" | xargs sanity_check --fix --quiet
 fi
 EOF
   chmod +x "$HOOK_PATH"

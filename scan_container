@@ -1,0 +1,131 @@
+#!/bin/bash
+
+# scan_container.sh - Scan Docker image with optional full scan
+# Updated: 2025-06-28
+# Tools: Trivy, Grype, Syft (default), Dive & Dockle (only with --full)
+# Logs: ./logs/<image>/<timestamp>/ and sanity_check.md
+
+set -euo pipefail
+export PATH="/opt/homebrew/bin:$PATH"
+
+# Load from .env if available
+if [[ -f .env ]]; then
+  while IFS='=' read -r key value; do
+    [[ -z "$key" || "$key" =~ ^# ]] && continue
+    export "$key=$value"
+  done < <(grep -v '^\s*#' .env | grep '=')
+fi
+
+LOG_DIR="${LOG_DIR:-./logs}"
+DOCKERHUB_REPO="${DOCKERHUB_REPO:-repping}"
+
+IMAGE=""
+ORIGINAL_IMAGE_NAME=""
+FULL_SCAN=false
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+
+print_help() {
+  echo "Usage:"
+  echo "  ./scan_container.sh --image <image-name> [--full]"
+  echo "  Optional: Use --container <image-name> as alias for --image"
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --image|--container)
+      shift
+      IMAGE="$1"
+      ORIGINAL_IMAGE_NAME=$(basename "$IMAGE" | cut -d':' -f1)
+      ;;
+    --full)
+      FULL_SCAN=true
+      ;;
+    -h|--help)
+      print_help
+      exit 0
+      ;;
+    *)
+      echo "❌ Unknown argument: $1"
+      print_help
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+if [[ -z "$IMAGE" ]]; then
+  echo "❌ Image name is required."
+  print_help
+  exit 1
+fi
+
+[[ "$IMAGE" != *:* ]] && IMAGE="${IMAGE}:latest"
+
+RUN_LOG_DIR="${LOG_DIR}/${ORIGINAL_IMAGE_NAME}/${TIMESTAMP}"
+mkdir -p "$RUN_LOG_DIR"
+SUMMARY_LOG="${RUN_LOG_DIR}/scan_summary.log"
+WARNINGS_LOG="${RUN_LOG_DIR}/scan_warnings.log"
+
+echo "✔ Scanning image: $IMAGE"
+echo "📁 Logs stored in: $RUN_LOG_DIR"
+
+#######################################
+# 🔍 Trivy Scan
+if command -v trivy &>/dev/null; then
+  echo "🔍 Running Trivy..." | tee -a "$SUMMARY_LOG"
+  trivy image --quiet --scanners vuln --severity HIGH,CRITICAL "$IMAGE" >"${RUN_LOG_DIR}/trivy.log" 2>&1 || true
+else
+  echo "⚠️ Trivy not installed." | tee -a "$WARNINGS_LOG"
+fi
+
+#######################################
+# 📦 Syft SBOM
+if command -v syft &>/dev/null; then
+  echo "📦 Running Syft..." | tee -a "$SUMMARY_LOG"
+  syft "$IMAGE" -o json | jq '[.artifacts[] | {name, version, type}]' >"${RUN_LOG_DIR}/syft.log" 2>/dev/null || true
+else
+  echo "⚠️ Syft not installed." | tee -a "$WARNINGS_LOG"
+fi
+
+#######################################
+# 🚨 Grype CVEs
+if command -v grype &>/dev/null; then
+  echo "🚨 Running Grype..." | tee -a "$SUMMARY_LOG"
+  grype "$IMAGE" --only-fixed --fail-on high --quiet >"${RUN_LOG_DIR}/grype.log" 2>&1 || true
+else
+  echo "⚠️ Grype not installed." | tee -a "$WARNINGS_LOG"
+fi
+
+#######################################
+# 🔬 Dive Scan (only if --full)
+if [[ "$FULL_SCAN" == true ]]; then
+  if command -v dive &>/dev/null; then
+    echo "🔬 Running Dive..." | tee -a "$SUMMARY_LOG"
+    dive "$IMAGE" --ci >"${RUN_LOG_DIR}/dive.log" 2>&1 || true
+  else
+    echo "⚠️ Dive not installed." | tee -a "$WARNINGS_LOG"
+  fi
+fi
+
+#######################################
+# 🛡️ Dockle Scan (only if --full)
+if [[ "$FULL_SCAN" == true ]]; then
+  if command -v dockle &>/dev/null; then
+    echo "🛡️ Running Dockle..." | tee -a "$SUMMARY_LOG"
+    dockle --exit-code 0 --format simple "$IMAGE" >"${RUN_LOG_DIR}/dockle.log" 2>&1 || true
+  else
+    echo "⚠️ Dockle not installed." | tee -a "$WARNINGS_LOG"
+  fi
+fi
+
+#######################################
+# 📄 Append to sanity_check.md
+if [[ -f "$SUMMARY_LOG" || -f "$WARNINGS_LOG" ]]; then
+  {
+    echo -e "\n## Scan Results: $IMAGE (${TIMESTAMP})"
+    [[ -f "$SUMMARY_LOG" ]] && cat "$SUMMARY_LOG"
+    [[ -f "$WARNINGS_LOG" ]] && cat "$WARNINGS_LOG"
+  } >> sanity_check.md
+fi
+
+echo "✅ Scan completed. Results saved to: $RUN_LOG_DIR"
