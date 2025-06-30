@@ -1,30 +1,48 @@
 #!/bin/bash
+set -euo pipefail
 
-# Navigate to the project directory
+# Navigate to the project root
 cd ./ || exit
 
 # Get the current date
 DD=$(date +'%d')
 MM=$(date +'%m')
 YYYY=$(date +'%Y')
-
-# Define the commit message with the current date
 COMMIT_MESSAGE="$DD/$MM/$YYYY - Updated configuration and fixed bugs"
 
-# Check the status of your working directory
+# Check Git status
 git status
 
-# Stage all changes
+# Stage all changes except ignored files
 git add .
 
-# Commit the changes with the dynamically generated message
-git commit -m "$COMMIT_MESSAGE"
+# ❌ Only attempt to remove if it’s currently tracked
+if git ls-files --error-unmatch FOLDER_TREE.md &>/dev/null; then
+  if grep -qF "FOLDER_TREE.md" .gitignore; then
+    echo "🧹 Removing FOLDER_TREE.md from Git tracking..."
+    git rm --cached FOLDER_TREE.md
+  fi
+fi
 
-# Push changes to the 'main' branch on the remote repository
-git push origin main
+# Check if there is anything to commit
+if git diff --cached --quiet; then
+  echo "🟢 No changes to commit."
+else
+  echo "📦 Committing changes..."
+  git commit -m "$COMMIT_MESSAGE"
+  git push origin main
 
-# Start ssh-agent if not already running
-if [ -z "$SSH_AUTH_SOCK" ]; then
-    eval "$(ssh-agent -s)"
-    ssh-add -A
+  # ✅ Only now: update FOLDER_TREE.md (not tracked in Git)
+  if command -v folder_tree &>/dev/null; then
+    echo "🌳 Generating updated folder tree..."
+    folder_tree --preset terraform,github --output markdown
+  else
+    echo "⚠️  'folder_tree' command not found — skipping tree update."
+  fi
+fi
+
+# Ensure ssh-agent is running
+if [ -z "${SSH_AUTH_SOCK:-}" ]; then
+  eval "$(ssh-agent -s)"
+  ssh-add -A
 fi

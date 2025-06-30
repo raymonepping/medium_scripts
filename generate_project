@@ -16,10 +16,10 @@ fi
 
 PROJECT_NAME="$2"
 SANITY_CHECK_CMD="sanity_check"
-DEFAULT_GITIGNORE="$HOME/.gitignore_global"
+DEFAULT_GITIGNORE="/Users/raymon.epping/.gitignore_global"
 DEFAULT_DOCKERIGNORE="$HOME/.dockerignore_global"
 COMMIT_SCRIPT_NAME="commit_gh"
-COMMIT_SCRIPT_FALLBACK="$HOME/Documents/GitHub/---scripting/Couchbase/Docker/$COMMIT_SCRIPT_NAME"
+COMMIT_SCRIPT_FALLBACK="/Users/raymon.epping/.gitignore_global"
 
 # 🔧 Prerequisites
 for bin in git gh; do
@@ -135,3 +135,13 @@ git branch -M main
 git push -u origin main
 
 echo -e "\n✅ Project '$PROJECT_NAME' scaffolded, sanity-checked, and pushed to GitHub!"
+
+# 🌳 Generate folder tree markdown if folder_tree is available
+if command -v folder_tree &>/dev/null; then
+  echo ""
+  echo "🌳 Generating FOLDER_TREE.md for $PROJECT_NAME..."
+  folder_tree --preset node,nuxt --output markdown "$PWD" || echo "⚠️ folder_tree failed"
+else
+  echo "⚠️ folder_tree not found — skipping FOLDER_TREE.md generation"
+fi
+
