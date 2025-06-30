@@ -1,0 +1,36 @@
+# Logs
+*.log
+logs
+
+# Sensitive / env files
+.env*
+*.env
+
+# Build outputs
+dist
+build
+
+# Package managers
+node_modules
+.npm
+.pnpm-debug.log
+npm-debug.log
+yarn-error.log
+
+# Coverage and test artifacts
+coverage
+*.test.*
+*.spec.*
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+*.sublime-*
+
+# Docker/CI-related (exclude if not needed in build context)
+.dockerignore
+Dockerfile
+docker-compose.yml
+
