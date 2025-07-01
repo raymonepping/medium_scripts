@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Default presets
-VERSION="1.5.1"
+VERSION="1.5.2"
 TARGET_DIR="."
 EXCLUDES=()
 USED_PRESETS=()
@@ -13,6 +13,7 @@ HISTORY_MODE=false
 SHOW_VERSION=false
 VERBOSE=false
 QUIET=false
+HINT_FILE="$HOME/.broot_hint_seen"
 
 declare -A EXCLUDE_PRESETS
 
@@ -42,13 +43,16 @@ print_usage() {
   echo "  --preset <types>       Comma-separated: node,nuxt,all,..."
   echo "  --config <file>        Load exclude patterns (default: ~/.treeignore)"
   echo "  --output markdown      Output Markdown-style list"
+  echo "  --output broot         Output Broot-style list"
   echo "  --output git           Show Git-tracked files as Markdown list"
+  echo "  --output broot         Launch broot from target directory"
   echo "  --no-color             Disable colored output"
   echo "  --version              Print script version"
   echo "  --bump-version <type>  Bump version: patch | minor | major"
   echo "  --list-presets         Show all available preset types"
   echo "  --history              Append to FOLDER_TREE.md instead of overwriting"
   echo "  --verbose              Enable verbose output"
+  echo "  --quiet                Suppress output"
   echo "  -h, --help             Show help"
   exit 0
 }
@@ -194,6 +198,26 @@ if [[ "$OUTPUT_MODE" == "git" ]]; then
   exit 0
 fi
 
+# broot mode
+if [[ "$OUTPUT_MODE" == "broot" ]]; then
+  if ! command -v broot &>/dev/null; then
+    echo "❌ 'broot' is not installed. Install it with: brew install broot"
+    exit 1
+  fi
+
+  echo "🚀 Launching broot in: $TARGET_DIR"
+  broot "$TARGET_DIR"
+
+  if [[ ! -f "$HINT_FILE" && ! "$(command -v br)" ]]; then
+    echo -e "ℹ️  Tip: To unlock full broot functionality (like 'cd' from inside), install the shell function:"
+    echo -e "👉 Run: broot --install"
+    echo -e "🔁 Then restart your terminal or run: exec \$SHELL"
+    touch "$HINT_FILE"
+  fi
+
+  exit 0
+fi
+
 # Build tree args
 TREE_ARGS=(-F --dirsfirst)
 [[ "$OUTPUT_MODE" != "markdown" && "$COLOR" == true ]] && TREE_ARGS+=(-C)
@@ -201,23 +225,18 @@ for pattern in "${EXCLUDES[@]}"; do
   TREE_ARGS+=(-I "$pattern")
 done
 
-# Optional version output
 [[ "$SHOW_VERSION" == true ]] && echo "🌳 folder_tree ${VERSION}"
 
-# Summary (unless quiet)
 log "📂 Target: $(basename "$TARGET_DIR")"
 [[ "${#USED_PRESETS[@]}" -gt 0 ]] && log "📦 Presets: ${USED_PRESETS[*]}"
-[[ -f "$CONFIG_FILE" ]] && log "🛡️  Excludes from: $(basename "$CONFIG_FILE")" || log "🛡️  Using built-in presets only"
+[[ -f "$CONFIG_FILE" ]] && log "🛡️ Excludes from: $(basename "$CONFIG_FILE")" || log "🛡️ Using built-in presets only"
 log ""
-
 [[ "$VERBOSE" == true ]] && log "🔍 TREE_ARGS: ${TREE_ARGS[*]}"
 
-# Run tree
 pushd "$TARGET_DIR" >/dev/null
 TREE_OUTPUT="$(tree "${TREE_ARGS[@]}" . 2>/dev/null || true)"
 popd >/dev/null
 
-# Markdown output
 if [[ "$OUTPUT_MODE" == "markdown" ]]; then
   TREE_MD="$(
     echo "## 📁 Folder Tree - $(date '+%Y-%m-%d %H:%M:%S') ##"
@@ -225,9 +244,9 @@ if [[ "$OUTPUT_MODE" == "markdown" ]]; then
     echo "$TREE_OUTPUT" | awk '
       BEGIN { indent = ""; }
       {
-        gsub(/│/, "|")
-        gsub(/├── /, "- ")
-        gsub(/└── /, "- ")
+        gsub(/\u2502/, "|")
+        gsub(/\u251c\u2500\u2500 /, "- ")
+        gsub(/\u2514\u2500\u2500 /, "- ")
         gsub(/    /, "  ")
         print
       }
@@ -237,16 +256,15 @@ if [[ "$OUTPUT_MODE" == "markdown" ]]; then
   OUTPUT_FILE="$TARGET_DIR/FOLDER_TREE.md"
   if [[ "$HISTORY_MODE" == true ]]; then
     echo "$TREE_MD" >> "$OUTPUT_FILE"
-    [[ "$QUIET" == false ]] && echo "📝 Markdown output appended to: $OUTPUT_FILE"
+    [[ "$QUIET" == false ]] && echo "📜 Markdown output appended to: $OUTPUT_FILE"
   else
     echo "$TREE_MD" > "$OUTPUT_FILE"
-    [[ "$QUIET" == false ]] && echo "📝 Markdown output written to (overwrite): $OUTPUT_FILE"
+    [[ "$QUIET" == false ]] && echo "📜 Markdown output written to (overwrite): $OUTPUT_FILE"
   fi
   [[ -z "$TREE_OUTPUT" && "$QUIET" == false ]] && echo "⚠️  Nothing to show. All contents excluded or directory is empty."
   exit 0
 fi
 
-# Plain output fallback
 if [[ -z "$TREE_OUTPUT" ]]; then
   [[ "$QUIET" == false ]] && echo "⚠️  Nothing to show. All contents excluded or directory is empty."
   exit 0
