@@ -1,0 +1,34 @@
+# .github/workflows/scan_on_pr.yml
+
+name: Bash PR Scan
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  bash-scan:
+    name: 🧪 Shell Lint and Static Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 📦 Install shellcheck and shfmt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          curl -sSLo shfmt https://github.com/mvdan/sh/releases/latest/download/shfmt_v3.7.0_linux_amd64
+          chmod +x shfmt
+          sudo mv shfmt /usr/local/bin/
+
+      - name: 🔍 Lint all .sh files with shellcheck
+        run: |
+          echo "Running shellcheck..."
+          find . -type f -name "*.sh" -exec shellcheck {} +
+
+      - name: 🎨 Optionally format with shfmt (dry run)
+        run: |
+          echo "Checking formatting with shfmt..."
+          find . -type f -name "*.sh" -exec shfmt -d {} +
