@@ -23,6 +23,11 @@ jobs:
           chmod +x shfmt
           sudo mv shfmt /usr/local/bin/
 
+      - name: 🔍 Lint all .sh files with shellcheck
+        run: |
+          echo "Running shellcheck..."
+          find . -type f -name "*.sh" -exec shellcheck {} + || true
+
       - name: 🎨 Optionally format with shfmt (dry run)
         run: |
           echo "Auto-formatting with shfmt..."
