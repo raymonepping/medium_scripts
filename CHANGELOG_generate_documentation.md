@@ -2,3 +2,8 @@
 
 🟣 2025-07-02 10:57:08 — raymon.epping: generate_documentation.sh bumped from 1.0.3 to 1.0.4
 
+[![version](https://img.shields.io/badge/version-1.5.0-red)](https://github.com/raymonepping)
+
+🔵 2025-07-02 21:41:11 — raymon.epping: generate_documentation.sh bumped from 1.4.0 to 1.5.0
+
+🔵 2025-07-02 21:38:23 — raymon.epping: generate_documentation.sh bumped from 1.3.8 to 1.4.0

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 export LC_CTYPE=UTF-8
-VERSION="1.3.8"
+VERSION="1.5.0"
 
 # -- Set top level variable for script execution --
 TOP_LEVEL_CALL=true
