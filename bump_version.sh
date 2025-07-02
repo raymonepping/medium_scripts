@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
+VERSION="1.12.0"
 
-# --- Color codes ---
+# test
+# - test 2
+
+# --- Define Colors for Output ---
 RED='\033[1;31m'
 GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[1;36m'
 RESET='\033[0m'
 
-# --- Defaults ---
+# --- Setting Defaults to be used later ---
 WRITE_CHANGELOG=1
 DRY_RUN=0
 
-# --- Parse Args ---
+# --- Parse script arguments ---
 RAW_SCRIPT="${1:-}"
 BUMP_TYPE="${2:---patch}"
 
@@ -21,6 +25,7 @@ if [[ -z "$RAW_SCRIPT" ]]; then
   exit 1
 fi
 
+# --- Handle --help flag ---
 if [[ "${1:-}" == "--help" ]]; then
   cat <<EOF
 $(basename "$0") [script.sh] [--patch|--minor|--major] [--changelog true|false] [--dry-run] [--help]
@@ -42,7 +47,7 @@ EOF
   exit 0
 fi
 
-# Parse extra flags
+# --- Handling additional flags ---
 shift 2 || true
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -60,13 +65,14 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# --- Validate bump type ---
 if [[ ! "$BUMP_TYPE" =~ ^--?(patch|minor|major)$ ]]; then
   echo -e "${RED}❌ Invalid bump type: $BUMP_TYPE${RESET}"
   exit 1
 fi
 BUMP_TYPE="${BUMP_TYPE/--/}"
 
-# --- Script path resolution ---
+# --- Resolve script path ---
 SCRIPT_PATH="$RAW_SCRIPT"
 [[ ! -f "$SCRIPT_PATH" && -f "${RAW_SCRIPT}.sh" ]] && SCRIPT_PATH="${RAW_SCRIPT}.sh"
 [[ ! -f "$SCRIPT_PATH" && -f "./${RAW_SCRIPT}" ]] && SCRIPT_PATH="./${RAW_SCRIPT}"
@@ -75,6 +81,12 @@ if [[ ! -f "$SCRIPT_PATH" ]]; then
   exit 1
 fi
 
+# --- Set derived metadata ---
+SCRIPT_BASENAME=$(basename "${SCRIPT_PATH%.sh}")
+
+# --- Set CHANGELOG file name, assuming the script is in the same directory as the CHANGELOG ---
+CHANGELOG="$(dirname "$SCRIPT_PATH")/CHANGELOG_${SCRIPT_BASENAME}.md"
+
 current_line=$(grep -E '^[[:space:]]*VERSION="[0-9]+\.[0-9]+\.[0-9]+"' "$SCRIPT_PATH" | head -n1 || true)
 if [[ -z "$current_line" ]]; then
   echo -e "${RED}❌ VERSION line not found in $SCRIPT_PATH${RESET}"
@@ -82,90 +94,141 @@ if [[ -z "$current_line" ]]; then
 fi
 current_version=$(echo "$current_line" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
 IFS='.' read -r major minor patch <<< "$current_version"
-old_version="$current_version"
 
-[[ "${DEBUG:-0}" == "1" ]] && echo -e "${CYAN}DEBUG: current_version=$current_version | major=$major minor=$minor patch=$patch${RESET}"
+# --- Normalize version numbers ---
+major=$((10#$major))
+minor=$((10#$minor))
+patch=$((10#$patch))
 
+# --- Validate extracted version ---
+if ! [[ "$major" =~ ^[0-9]+$ && "$minor" =~ ^[0-9]+$ && "$patch" =~ ^[0-9]+$ ]]; then
+  echo -e "${RED}❌ Invalid version number format in $current_version${RESET}"
+  exit 1
+fi
+
+# --- Calculate next version to be used ---
 case "$BUMP_TYPE" in
   major)
-    ((major++)); minor=0; patch=0
-    msg_type="🔵"
+    new_major=$((major + 1)); new_minor=0; new_patch=0
+    msg_type="🟥"
     ;;
   minor)
-    if [[ "$minor" -eq 0 ]]; then
-      minor=1; patch=0
-    else
-      ((minor++)); patch=0
-    fi
-    msg_type="🟣"
+    new_major=$major; new_minor=$((minor + 1)); new_patch=0
+    msg_type="🔵"
     ;;
   patch)
-    if [[ "$patch" -eq 0 ]]; then
-      patch=1
-    else
-      ((patch++))
-    fi
-    msg_type="🟢"
+    new_major=$major; new_minor=$minor; new_patch=$((patch + 1))
+    msg_type="🟣"
     ;;
 esac
 
-new_version="${major}.${minor}.${patch}"
+# --- Construct new version string ---
+new_version="${new_major}.${new_minor}.${new_patch}"
 
-if [[ "$old_version" == "$new_version" ]]; then
-  echo -e "${YELLOW}⚠️  No change: Version already at $new_version (forcing to next logical version)${RESET}"
+# --- Handle version already bumped ---
+if [[ "$current_version" == "$new_version" ]]; then
+  echo -e "${YELLOW}⚠️  No change: Version already at $new_version (forcing next logical version)${RESET}"
   case "$BUMP_TYPE" in
+    major)
+      new_version="$((new_major + 1)).0.0"
+      ;;
     minor)
-      ((minor++)); patch=0
+      new_version="${new_major}.$((new_minor + 1)).0"
       ;;
     patch)
-      ((patch++))
+      new_version="${new_major}.${new_minor}.$((new_patch + 1))"
       ;;
   esac
-  new_version="${major}.${minor}.${patch}"
 fi
 
-# --- DRY RUN: show changes, don't write ---
+# --- Dry-run behavior ---
 if [[ "$DRY_RUN" == "1" ]]; then
-  echo -e "${CYAN}🧪 [DRY RUN] Would update ${SCRIPT_PATH}: ${old_version} → ${new_version}${RESET}"
+  echo -e "${CYAN}🧪 [DRY RUN] Would update ${SCRIPT_PATH}: ${current_version} → ${new_version}${RESET}"
   [[ "$WRITE_CHANGELOG" == "1" ]] && echo -e "${CYAN}🧪 [DRY RUN] Would update CHANGELOG.md${RESET}"
   exit 0
 fi
 
-# --- Write version bump to script ---
+# --- Safely replace VERSION line ---
 TMPFILE="$(dirname "$SCRIPT_PATH")/.bump_tmp_$$"
+was_executable=0
+[[ -x "$SCRIPT_PATH" ]] && was_executable=1
+
+# --- Check if original script was executable ---
+was_executable=0
+[[ -x "$SCRIPT_PATH" ]] && was_executable=1
+
+# --- Replace VERSION line in script safely ---
 awk -v v="VERSION=\"${new_version}\"" '
   c==0 && /^[[:space:]]*VERSION="[0-9]+\.[0-9]+\.[0-9]+"/ { print v; c=1; next }
   { print }
 ' "$SCRIPT_PATH" > "$TMPFILE" && mv "$TMPFILE" "$SCRIPT_PATH"
 
-# --- Update or create CHANGELOG.md ---
-CHANGELOG="$(dirname "$SCRIPT_PATH")/CHANGELOG.md"
+# --- Restore executable flag if it was set originally ---
+[[ "$was_executable" == "1" ]] && chmod +x "$SCRIPT_PATH"
+
+# --- Prepare to write to Changelog ---
 timestamp=$(date "+%Y-%m-%d %H:%M:%S")
 user=$(whoami)
-entry="${msg_type} ${timestamp} — ${user}: ${SCRIPT_PATH##*/} bumped from ${old_version} to ${new_version}"
+entry="${msg_type} ${timestamp} — ${user}: ${SCRIPT_PATH##*/} bumped from ${current_version} to ${new_version}"
 
-BADGE="[![version](https://img.shields.io/badge/version-${new_version}-blue)](https://github.com/raymonepping)"
+# --- Create badge for version ---
+BADGE="[![version](https://img.shields.io/badge/version-${new_version}-red)](https://github.com/raymonepping)"
 
+# --- Write to CHANGELOG if enabled ---
 if [[ "$WRITE_CHANGELOG" == "1" ]]; then
-  if [[ -f "$CHANGELOG" ]]; then
-    echo -e "$entry" >> "$CHANGELOG"
-  else
-    echo -e "# CHANGELOG\n\n$entry" > "$CHANGELOG"
+  tmp_changelog="${CHANGELOG}.tmp"
+
+  # --- Check if CHANGELOG file exists, if not create it with the entry ---
+  if [[ ! -d "$(dirname "$CHANGELOG")" ]]; then
+  mkdir -p "$(dirname "$CHANGELOG")"
   fi
-  awk -v badge="$BADGE" '
-    BEGIN{badge_inserted=0}
-    NR==1 && $0 ~ /^# CHANGELOG/ {
-      print $0; print badge; badge_inserted=1; next
-    }
-    $0 ~ /^\[\!\[version.*shields\.io\/badge\/version/ {next}
-    $0 ~ /^\!\[.*shields\.io\/badge\/version/ {next}
-    {print}
-    END{
-      if(!badge_inserted) print badge
-    }
-  ' "$CHANGELOG" > "$CHANGELOG.tmp" && mv "$CHANGELOG.tmp" "$CHANGELOG"
+
+  if [[ ! -f "$CHANGELOG" ]]; then
+
+    echo -e "# CHANGELOG: ${SCRIPT_BASENAME}\n\n$entry\n" > "$CHANGELOG"
+  else
+    awk -v badge="$BADGE" -v entry="$entry" '
+      BEGIN { badge_inserted=0; entry_inserted=0 }
+      NR==1 && /^# CHANGELOG/ {
+        print $0
+        next
+      }
+      /^\[\!\[version.*shields\.io\/badge\/version/ {
+        print badge
+        badge_inserted=1
+        next
+      }
+      /^\!\[.*shields\.io\/badge\/version/ {
+        print badge
+        badge_inserted=1
+        next
+      }
+      !entry_inserted && badge_inserted {
+        print ""; print entry
+        entry_inserted=1
+      }
+      { print }
+      END {
+        if (!badge_inserted) print badge
+        if (!entry_inserted) {
+          print ""; print entry
+        }
+      }
+    ' "$CHANGELOG" > "$tmp_changelog" && mv "$tmp_changelog" "$CHANGELOG"
+  fi
+
+  # --- Output Changelog update message ---
   echo -e "${CYAN}📝 CHANGELOG updated: ${CHANGELOG}${RESET}"
 fi
 
-echo -e "${GREEN}✅ ${SCRIPT_PATH} bumped: ${old_version} → ${new_version}${RESET}"
+# --- Generate success message ---
+echo -e "${GREEN}✅ ${SCRIPT_PATH} bumped: ${current_version} → ${new_version}${RESET}"
 [[ "${DEBUG:-0}" == "1" ]] && tail -n 4 "$CHANGELOG"
+
+# --- Generate updated documentation for this script ---
+if [[ -x "./generate_documentation.sh" ]]; then
+  ./generate_documentation.sh "$SCRIPT_PATH" --strict
+  echo -e "${GREEN}📚 Documentation updated: docs/$(basename "${SCRIPT_PATH%.sh}").md${RESET}"
+else
+  echo -e "${YELLOW}⚠️  generate_documentation.sh not found or not executable — skipping doc generation${RESET}"
+fi

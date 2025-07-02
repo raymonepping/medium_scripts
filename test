@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export LC_CTYPE=UTF-8
+VERSION="2.2.0"
+
+# --- Handle --help and --version flags early ---
+if [[ "${1:-}" == "--help" ]]; then
+  echo "Usage: $0 [OPTIONS] <script-or-folder>"
+  echo ""
+  echo "Options:"
+  echo "  --depth <n>           Set recursion depth (default: 10)"
+  echo "  --summary             Only show high-level summaries"
+  echo "  --include-lint        Include lint output in Markdown"
+  echo "  --help                Show this help message"
+  echo "  --version             Show script version"
+  exit 0
+fi
+
+if [[ "${1:-}" == "--version" ]]; then
+  echo "$0 version $VERSION"
+  exit 0
+fi
+
+# --- CONFIG ---
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OUTPUT_DIR="$SCRIPT_DIR/docs"
+IGNORE_FILE="$SCRIPT_DIR/.doc_bash_ignore"
+LINT_ENABLED=false
+INCLUDE_LINT=false
+SUMMARY_MODE=false
+MAX_DEPTH=10
+VISITED=()
+
+mkdir -p "$OUTPUT_DIR"
+
+# --- Load ignore list ---
+IGNORED_COMMANDS=("echo" "clear" "pwd" "read" "exit" "if" "fi" "then" "else" "while" "do" "done")
+[[ -f "$IGNORE_FILE" ]] && mapfile -t IGNORED_COMMANDS < "$IGNORE_FILE"
+
+# --- Tool checks ---
+if command -v shellcheck &>/dev/null; then
+  LINT_ENABLED=true
+else
+  echo "⚠️  shellcheck not found: skipping lint step"
+fi
+
+if command -v shfmt &>/dev/null; then
+  [[ -d "$SCRIPT_DIR/scripts" ]] && find "$SCRIPT_DIR/scripts" -name "*.sh" -exec shfmt -w {} +
+else
+  echo "⚠️  shfmt not found: skipping formatting step"
+fi
+
+# --- CLI flags ---
+ARGS=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --summary) SUMMARY_MODE=true ;;
+    --depth) MAX_DEPTH="$2"; shift ;;
+    --include-lint) INCLUDE_LINT=true ;;
+    *) ARGS+=("$1") ;;
+  esac
+  shift
+done
+set -- "${ARGS[@]}"
+
+# --- Parser function ---
+parse_script() {
+  local file="$1"
+  local depth="$2"
+  local base_name
+  base_name="$(basename "$file" .sh)"
+  VISITED+=("$file")
+
+  [[ "$depth" -gt "$MAX_DEPTH" ]] && return
+
+  local vars=()
+  local commands=()
+  local children=()
+  local md_output=""
+  local json_obj
+
+  md_output+=$'\n'"# ${base_name}.sh"$'\n\n'
+  md_output+="## Variables Set"$'\n'
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line=$(echo "$line" | sed 's/^[[:space:]]*//')
+    [[ "$line" == \#* || -z "$line" ]] && continue
+
+    # Variable detection
+    if [[ "$line" =~ ^[A-Z_][A-Z0-9_]*= ]]; then
+      var_name=$(echo "$line" | cut -d'=' -f1)
+      vars+=("$var_name")
+      continue
+    fi
+
+    # Command detection
+    cmd=$(echo "$line" | awk '{print $1}')
+    if [[ " ${IGNORED_COMMANDS[*]} " =~ " $cmd " ]]; then
+      continue
+    fi
+
+    # Script call detection (bash/source/./path)
+    if [[ "$line" =~ (bash|source|\.)[[:space:]]+([a-zA-Z0-9._/-]+)(\.sh)? ]]; then
+      called_script="${BASH_REMATCH[2]}"
+      ext="${BASH_REMATCH[3]:-.sh}"
+      full_script="${called_script}${ext}"
+
+      # Check local first
+      local_path="$SCRIPT_DIR/scripts/$full_script"
+      if [[ -f "$local_path" ]]; then
+        children+=("$full_script")
+        parse_script "$local_path" $((depth + 1)) "$file"
+        continue
+      fi
+
+      # Check in PATH
+      resolved_path=$(command -v "$called_script" || true)
+      if [[ -n "$resolved_path" && -f "$resolved_path" ]]; then
+        children+=("$(basename "$resolved_path")")
+        parse_script "$resolved_path" $((depth + 1)) "$file"
+        continue
+      fi
+
+      echo "⚠️  Could not resolve external script '$called_script'. Please use full path or place in PATH."
+      continue
+    fi
+
+    commands+=("$line")
+  done < "$file"
+
+  for v in "${vars[@]}"; do md_output+="- $v"$'\n'; done
+
+  if [ "${#commands[@]}" -gt 0 ]; then
+    md_output+=$'\n'"## Commands Executed"$'\n'
+    for c in "${commands[@]}"; do
+      md_output+="- \`$c\`"$'\n'
+    done
+  fi
+
+  if [ "${#children[@]}" -gt 0 ]; then
+    md_output+=$'\n'"## External Scripts Called"$'\n'
+    for c in "${children[@]}"; do
+      md_output+="- $c"$'\n'
+    done
+  fi
+
+  if $INCLUDE_LINT && $LINT_ENABLED; then
+    md_output+=$'\n'"## Lint Report"$'\n'
+    lint_output=$(shellcheck "$file" || true)
+    md_output+="\`\`\`shell\n${lint_output}\n\`\`\`"$'\n'
+  fi
+
+  echo "$md_output" > "$OUTPUT_DIR/$base_name.md"
+
+  json_obj=$(jq -n \
+    --arg script "$base_name.sh" \
+    --argjson vars "$(printf '%s\n' "${vars[@]}" | jq -R . | jq -s .)" \
+    --argjson cmds "$(printf '%s\n' "${commands[@]}" | jq -R . | jq -s .)" \
+    --argjson subs "$(printf '%s\n' "${children[@]}" | jq -R . | jq -s .)" \
+    '{script: $script, variables: $vars, commands: $cmds, external_scripts: $subs}'
+  )
+  echo "$json_obj" > "$OUTPUT_DIR/$base_name.sh.json"
+}
+
+# --- Main loop ---
+for input in "${ARGS[@]}"; do
+  if [[ -d "$input" ]]; then
+    find "$input" -name "*.sh" | while read -r script; do
+      [[ " ${VISITED[*]} " =~ " $script " ]] && continue
+      parse_script "$script" 0 ""
+    done
+  elif [[ -f "$input" ]]; then
+    parse_script "$input" 0 ""
+  else
+    echo "❌ Invalid input: $input"
+  fi
+done
+
+echo "✅ Documentation generated in: $OUTPUT_DIR"
