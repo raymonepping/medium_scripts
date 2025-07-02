@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
+<<<<<<< HEAD
 VERSION="1.8.0"
+=======
+>>>>>>> 16f700f (version bump)
 
 # --- Color codes ---
 RED='\033[1;31m'
@@ -76,12 +79,15 @@ if [[ ! -f "$SCRIPT_PATH" ]]; then
   exit 1
 fi
 
+<<<<<<< HEAD
 # --- Determine script name without extension ---
 SCRIPT_BASENAME=$(basename "${SCRIPT_PATH%.sh}")
 
 # --- Changelog filename ---
 CHANGELOG="$(dirname "$SCRIPT_PATH")/CHANGELOG_${SCRIPT_BASENAME}.md"
 
+=======
+>>>>>>> 16f700f (version bump)
 current_line=$(grep -E '^[[:space:]]*VERSION="[0-9]+\.[0-9]+\.[0-9]+"' "$SCRIPT_PATH" | head -n1 || true)
 if [[ -z "$current_line" ]]; then
   echo -e "${RED}❌ VERSION line not found in $SCRIPT_PATH${RESET}"
@@ -89,6 +95,7 @@ if [[ -z "$current_line" ]]; then
 fi
 current_version=$(echo "$current_line" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
 IFS='.' read -r major minor patch <<< "$current_version"
+<<<<<<< HEAD
 
 # Strip leading zeroes
 major=$((10#$major))
@@ -137,10 +144,58 @@ fi
 # --- DRY RUN ---
 if [[ "$DRY_RUN" == "1" ]]; then
   echo -e "${CYAN}🧪 [DRY RUN] Would update ${SCRIPT_PATH}: ${current_version} → ${new_version}${RESET}"
+=======
+old_version="$current_version"
+
+[[ "${DEBUG:-0}" == "1" ]] && echo -e "${CYAN}DEBUG: current_version=$current_version | major=$major minor=$minor patch=$patch${RESET}"
+
+case "$BUMP_TYPE" in
+  major)
+    ((major++)); minor=0; patch=0
+    msg_type="🔵"
+    ;;
+  minor)
+    if [[ "$minor" -eq 0 ]]; then
+      minor=1; patch=0
+    else
+      ((minor++)); patch=0
+    fi
+    msg_type="🟣"
+    ;;
+  patch)
+    if [[ "$patch" -eq 0 ]]; then
+      patch=1
+    else
+      ((patch++))
+    fi
+    msg_type="🟢"
+    ;;
+esac
+
+new_version="${major}.${minor}.${patch}"
+
+if [[ "$old_version" == "$new_version" ]]; then
+  echo -e "${YELLOW}⚠️  No change: Version already at $new_version (forcing to next logical version)${RESET}"
+  case "$BUMP_TYPE" in
+    minor)
+      ((minor++)); patch=0
+      ;;
+    patch)
+      ((patch++))
+      ;;
+  esac
+  new_version="${major}.${minor}.${patch}"
+fi
+
+# --- DRY RUN: show changes, don't write ---
+if [[ "$DRY_RUN" == "1" ]]; then
+  echo -e "${CYAN}🧪 [DRY RUN] Would update ${SCRIPT_PATH}: ${old_version} → ${new_version}${RESET}"
+>>>>>>> 16f700f (version bump)
   [[ "$WRITE_CHANGELOG" == "1" ]] && echo -e "${CYAN}🧪 [DRY RUN] Would update CHANGELOG.md${RESET}"
   exit 0
 fi
 
+<<<<<<< HEAD
 # --- Replace VERSION in script ---
 TMPFILE="$(dirname "$SCRIPT_PATH")/.bump_tmp_$$"
 was_executable=0
@@ -151,11 +206,16 @@ was_executable=0
 [[ -x "$SCRIPT_PATH" ]] && was_executable=1
 
 # --- Replace VERSION line in script safely ---
+=======
+# --- Write version bump to script ---
+TMPFILE="$(dirname "$SCRIPT_PATH")/.bump_tmp_$$"
+>>>>>>> 16f700f (version bump)
 awk -v v="VERSION=\"${new_version}\"" '
   c==0 && /^[[:space:]]*VERSION="[0-9]+\.[0-9]+\.[0-9]+"/ { print v; c=1; next }
   { print }
 ' "$SCRIPT_PATH" > "$TMPFILE" && mv "$TMPFILE" "$SCRIPT_PATH"
 
+<<<<<<< HEAD
 # --- Restore executable flag if it was set originally ---
 [[ "$was_executable" == "1" ]] && chmod +x "$SCRIPT_PATH"
 
@@ -208,4 +268,36 @@ if [[ "$WRITE_CHANGELOG" == "1" ]]; then
 fi
 
 echo -e "${GREEN}✅ ${SCRIPT_PATH} bumped: ${current_version} → ${new_version}${RESET}"
+=======
+# --- Update or create CHANGELOG.md ---
+CHANGELOG="$(dirname "$SCRIPT_PATH")/CHANGELOG.md"
+timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+user=$(whoami)
+entry="${msg_type} ${timestamp} — ${user}: ${SCRIPT_PATH##*/} bumped from ${old_version} to ${new_version}"
+
+BADGE="[![version](https://img.shields.io/badge/version-${new_version}-blue)](https://github.com/raymonepping)"
+
+if [[ "$WRITE_CHANGELOG" == "1" ]]; then
+  if [[ -f "$CHANGELOG" ]]; then
+    echo -e "$entry" >> "$CHANGELOG"
+  else
+    echo -e "# CHANGELOG\n\n$entry" > "$CHANGELOG"
+  fi
+  awk -v badge="$BADGE" '
+    BEGIN{badge_inserted=0}
+    NR==1 && $0 ~ /^# CHANGELOG/ {
+      print $0; print badge; badge_inserted=1; next
+    }
+    $0 ~ /^\[\!\[version.*shields\.io\/badge\/version/ {next}
+    $0 ~ /^\!\[.*shields\.io\/badge\/version/ {next}
+    {print}
+    END{
+      if(!badge_inserted) print badge
+    }
+  ' "$CHANGELOG" > "$CHANGELOG.tmp" && mv "$CHANGELOG.tmp" "$CHANGELOG"
+  echo -e "${CYAN}📝 CHANGELOG updated: ${CHANGELOG}${RESET}"
+fi
+
+echo -e "${GREEN}✅ ${SCRIPT_PATH} bumped: ${old_version} → ${new_version}${RESET}"
+>>>>>>> 16f700f (version bump)
 [[ "${DEBUG:-0}" == "1" ]] && tail -n 4 "$CHANGELOG"
