@@ -1,4 +1,4 @@
-# bump_version.sh - 2025-07-02 16:35:38
+# bump_version.sh - 2025-07-02 16:54:39
 
 [![Version](https://img.shields.io/badge/version-1.12.0-purple.svg)](./bump_version.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/bump_version.md)
@@ -77,7 +77,7 @@
 - Detect Called Scripts
 - Main Parser
 - Generate Entry Point
-- Generate Documentation Finished
+- Remove all trailing blank lines in generated markdown files
 
 ## Variables Set - generate_documentation.sh
 - ARGS
@@ -97,4 +97,3 @@
 - TOP_LEVEL_CALL
 - VERSION
 - VISITED
-
