@@ -175,10 +175,3 @@ if [[ "$WRITE_CHANGELOG" == "1" ]]; then
 fi
 
 echo -e "${GREEN}✅ ${SCRIPT_PATH} bumped: ${current_version} → ${new_version}${RESET}"
-
-if [[ -x "./generate_documentation.sh" ]]; then
-  ./generate_documentation.sh "$SCRIPT_PATH" 
-  echo -e "${GREEN}📚 Documentation updated: docs/$(basename "${SCRIPT_PATH%.sh}").md${RESET}"
-else
-  echo -e "${YELLOW}⚠️  generate_documentation.sh not found or not executable — skipping doc generation${RESET}"
-fi
