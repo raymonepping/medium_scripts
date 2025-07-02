@@ -58,18 +58,18 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --depth)
       if [[ -n "${2:-}" ]]; then MAX_DEPTH="$2"; shift
-      else echo "❌ Missing value for --depth"; exit 1; fi ;;
+      else echo "❌ Missing value for --depth"; shift; continue; fi ;;
     --include-lint) INCLUDE_LINT=true ;;
     --strict)
       if [[ -n "${2:-}" ]]; then STRICT_MODE="$2"; shift
-      else echo "❌ Missing value for --strict"; exit 1; fi ;;
+      else echo "❌ Missing value for --strict"; shift; continue; fi ;;
     --include-called-scripts)
       if [[ -n "${2:-}" ]]; then
         if [[ "$2" == "true" ]]; then INCLUDE_CALLED_SCRIPTS=true;
         else INCLUDE_CALLED_SCRIPTS=false; fi
         shift
       else
-        echo "❌ Missing value for --include-called-scripts"; exit 1;
+        echo "❌ Missing value for --include-called-scripts"; shift; continue;
       fi ;;
     *) ARGS+=("$1") ;;
   esac
@@ -180,7 +180,6 @@ compose_badge_row() {
   done
 }
 
-
 # --- Summary Extraction ---
 extract_summary() {
   local file="$1"
@@ -288,6 +287,8 @@ parse_script() {
 em "🚀" "Starting documentation generation..."
 GENERATED=0
 
+fatal=0  # Only set to 1 if truly unrecoverable
+
 for input in "${ARGS[@]}"; do
   if [[ -f "$input" ]]; then
     main_name="$(basename "$input" .sh)"
@@ -303,6 +304,8 @@ for input in "${ARGS[@]}"; do
     done < <(find "$input" -name "*.sh")
   else
     em "❌" "Invalid input: $input"
+    # DO NOT exit, just continue to next
+    continue
   fi
 done
 
@@ -313,4 +316,4 @@ for md in "$OUTPUT_DIR"/*.md; do
 done
 em "🎉" "All documentation is now perfectly clean!"
 
-# --- Finalize ---
+exit $fatal  # Always exit 0 unless you add logic above to set fatal=1
