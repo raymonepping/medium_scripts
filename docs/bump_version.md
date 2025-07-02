@@ -1,8 +1,8 @@
-# bump_version.sh - v1.12.0 - 2025-07-02 20:24:25
+# bump_version.sh - v1.12.0 - 2025-07-02 20:26:54
 
 [![Version](https://img.shields.io/badge/version-1.12.0-purple.svg)](./bump_version.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/bump_version.md)
-[![Size](https://img.shields.io/badge/size-6.0K-yellow)](./bump_version.sh)
+[![Size](https://img.shields.io/badge/size-5.7K-yellow)](./bump_version.sh)
 [![Updated](https://img.shields.io/badge/updated-2025--07--02-blue)](./bump_version.sh)
 [![Bash](https://img.shields.io/badge/bash-5--2--21-red)](https://www.gnu.org/software/bash/)
 
@@ -44,45 +44,3 @@
 - VERSION
 - WRITE_CHANGELOG
 - YELLOW
-
-- High-level summary - generate_documentation.sh
-- Variables Set - generate_documentation.sh
-
-## High-level summary - generate_documentation.sh
-- Handle --help and --version flags early
-- Handle --version flag
-- Define configuration variables
-- Load ignore list
-- Tool checks
-- CLI flags
-- Utility: Emoji echo
-- Lint Badge Generation
-- Bash Version Badge Generation
-- File Size Badge Generation
-- Last Updated Badge Generation
-- Compose Badges Line
-- Summary Extraction
-- Variable Extraction
-- Detect Called Scripts
-- Main Parser
-- Generate Entry Point
-- Remove all trailing blank lines in generated markdown files
-
-## Variables Set - generate_documentation.sh
-- ARGS
-- CLEAN_MODE
-- EMOJI_MODE
-- GENERATED
-- IGNORED_COMMANDS
-- IGNORE_FILE
-- INCLUDE_CALLED_SCRIPTS
-- INCLUDE_LINT
-- LINT_ENABLED
-- MAX_DEPTH
-- OUTPUT_DIR
-- SCRIPT_DIR
-- STRICT_MODE
-- SUMMARY_MODE
-- TOP_LEVEL_CALL
-- VERSION
-- VISITED
