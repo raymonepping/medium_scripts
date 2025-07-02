@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="1.8.0"
+VERSION="2.0.0"
 
 # -- Set top level variable for script execution --
 TOP_LEVEL_CALL=true
