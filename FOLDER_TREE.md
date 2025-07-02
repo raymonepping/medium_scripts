@@ -1,32 +1,35 @@
-## 📁 Folder Tree - 2025-07-01 09:49:04 ##
+## 📁 Folder Tree - 2025-07-02 22:34:55 ##
 
 ./
+├── docs/
+│   ├── build_container.md
+│   ├── build_image.md
+│   ├── bump_version.md
+│   ├── commit_gh.md
+│   ├── generate_documentation.md
+│   ├── launch_cloudflare.md
+│   ├── list_versions.md
+│   └── slim_container.md
+├── documentation/
+│   └── placeholder.md
 ├── _dockerignore_global
 ├── _gitignore_global
 ├── _treeignore
-├── build_container.sh*
-├── build_image*
-├── close_boundary.sh*
-├── close_cloudflare.sh*
+├── bump_version.md
+├── bump_version.sh*
+├── CHANGELOG_bump_version.md
+├── CHANGELOG_generate_documentation.md
+├── CHANGELOG.md
 ├── commit_gh
 ├── folder_tree
 ├── FOLDER_TREE.md
-├── generate_project
-├── generate_project.sh*
-├── launch_boundary.sh*
-├── launch_cloudflare.sh*
+├── generate_documentation.sh*
 ├── LICENSE
-├── list_versions.sh*
 ├── README.md
-├── sanity_check*
-├── sanity_check.sh*
-├── scan_container*
-├── slim_container.sh*
-├── transform_docker.sh*
-├── vault_configure.sh*
-├── vault_verify.sh*
-└── vault-ssh-sign.sh*
+├── test
+├── trigger_git_scan
+└── VERSION_BADGE.md
 
-1 directory, 25 files
+3 directories, 26 files
 
 ---
