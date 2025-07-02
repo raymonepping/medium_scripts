@@ -312,3 +312,5 @@ for md in "$OUTPUT_DIR"/*.md; do
   [[ -f "$md" ]] && clean_trailing_blank_lines "$md"
 done
 em "🎉" "All documentation is now perfectly clean!"
+
+# --- Finalize ---
