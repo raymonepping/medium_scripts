@@ -1,4 +1,4 @@
-# generate_documentation.sh - v1.8.0 - 2025-07-02 20:26:55
+# generate_documentation.sh - v1.8.0 - 2025-07-02 20:29:33
 
 [![Version](https://img.shields.io/badge/version-1.8.0-purple.svg)](./generate_documentation.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/generate_documentation.md)
