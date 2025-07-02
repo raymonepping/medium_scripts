@@ -1,8 +1,8 @@
-# generate_documentation.sh - v1.5.0 - 2025-07-02 21:41:11
+# generate_documentation.sh - v1.6.0 - 2025-07-02 22:14:03
 
-[![Version](https://img.shields.io/badge/version-1.5.0-purple.svg)](./generate_documentation.sh)
+[![Version](https://img.shields.io/badge/version-1.6.0-purple.svg)](./generate_documentation.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/generate_documentation.md)
-[![Size](https://img.shields.io/badge/size-9.4K-yellow)](./generate_documentation.sh)
+[![Size](https://img.shields.io/badge/size-9.6K-yellow)](./generate_documentation.sh)
 [![Updated](https://img.shields.io/badge/updated-2025--07--02-blue)](./generate_documentation.sh)
 [![Bash](https://img.shields.io/badge/bash-5--2--37-red)](https://www.gnu.org/software/bash/)
 
