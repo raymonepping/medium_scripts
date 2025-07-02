@@ -16,12 +16,8 @@ RESET="\033[0m"
 # --- Parse arguments ---
 for arg in "$@"; do
   case $arg in
-  --force)
-    FORCE=true
-    ;;
-  --wait)
-    WAIT=true
-    ;;
+    --force) FORCE=true ;;
+    --wait)  WAIT=true ;;
   esac
 done
 
@@ -75,12 +71,16 @@ else
       echo "$cloudflared_pids" | xargs kill
       echo -e "${GREEN}✅ All cloudflared processes terminated.${RESET}"
     else
-      read -p $'\n👉 Do you want to save these PIDs to cloudflare_pids.txt for cleanup? [y/N] ' confirm
-      if [[ "$confirm" =~ ^[Yy]$ ]]; then
-        echo "$cloudflared_pids" >"$PIDS_FILE"
-        echo -e "\n💾 PIDs saved to $PIDS_FILE. Re-run the script to stop them."
+      if [ -t 0 ]; then
+        read -p $'\n👉 Do you want to save these PIDs to cloudflare_pids.txt for cleanup? [y/N] ' confirm
+        if [[ "$confirm" =~ ^[Yy]$ ]]; then
+          echo "$cloudflared_pids" >"$PIDS_FILE"
+          echo -e "\n💾 PIDs saved to $PIDS_FILE. Re-run the script to stop them."
+        else
+          echo -e "\n🚫 Skipped saving PIDs. Nothing was changed."
+        fi
       else
-        echo -e "\n🚫 Skipped saving PIDs. Nothing was changed."
+        echo -e "\n${CYAN}⚠️  Non-interactive shell: skipping PID prompt and not saving PIDs.${RESET}"
       fi
     fi
   else
