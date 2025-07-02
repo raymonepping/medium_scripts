@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+VERSION="1.4.0"
 
 # --- Color codes ---
 RED='\033[1;31m'
@@ -75,6 +76,12 @@ if [[ ! -f "$SCRIPT_PATH" ]]; then
   exit 1
 fi
 
+# --- Determine script name without extension ---
+SCRIPT_BASENAME=$(basename "${SCRIPT_PATH%.sh}")
+
+# --- Changelog filename ---
+CHANGELOG="$(dirname "$SCRIPT_PATH")/CHANGELOG_${SCRIPT_BASENAME}.md"
+
 current_line=$(grep -E '^[[:space:]]*VERSION="[0-9]+\.[0-9]+\.[0-9]+"' "$SCRIPT_PATH" | head -n1 || true)
 if [[ -z "$current_line" ]]; then
   echo -e "${RED}❌ VERSION line not found in $SCRIPT_PATH${RESET}"
@@ -136,13 +143,24 @@ fi
 
 # --- Replace VERSION in script ---
 TMPFILE="$(dirname "$SCRIPT_PATH")/.bump_tmp_$$"
+was_executable=0
+[[ -x "$SCRIPT_PATH" ]] && was_executable=1
+
+# --- Check if original script was executable ---
+was_executable=0
+[[ -x "$SCRIPT_PATH" ]] && was_executable=1
+
+# --- Replace VERSION line in script safely ---
 awk -v v="VERSION=\"${new_version}\"" '
   c==0 && /^[[:space:]]*VERSION="[0-9]+\.[0-9]+\.[0-9]+"/ { print v; c=1; next }
   { print }
 ' "$SCRIPT_PATH" > "$TMPFILE" && mv "$TMPFILE" "$SCRIPT_PATH"
 
+# --- Restore executable flag if it was set originally ---
+[[ "$was_executable" == "1" ]] && chmod +x "$SCRIPT_PATH"
+
 # --- Changelog ---
-CHANGELOG="$(dirname "$SCRIPT_PATH")/CHANGELOG.md"
+# CHANGELOG="$(dirname "$SCRIPT_PATH")/CHANGELOG.md"
 timestamp=$(date "+%Y-%m-%d %H:%M:%S")
 user=$(whoami)
 entry="${msg_type} ${timestamp} — ${user}: ${SCRIPT_PATH##*/} bumped from ${current_version} to ${new_version}"
@@ -154,7 +172,7 @@ if [[ "$WRITE_CHANGELOG" == "1" ]]; then
 
   # Create CHANGELOG if it doesn't exist
   if [[ ! -f "$CHANGELOG" ]]; then
-    echo -e "# CHANGELOG\n\n$BADGE\n\n$entry\n" > "$CHANGELOG"
+    echo -e "# CHANGELOG: ${SCRIPT_BASENAME}\n\n$entry\n" > "$CHANGELOG"
   else
     awk -v badge="$BADGE" -v entry="$entry" '
       BEGIN { badge_inserted=0; entry_inserted=0 }
