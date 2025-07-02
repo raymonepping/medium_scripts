@@ -15,31 +15,38 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Set up UTF-8 locale
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y locales
+          sudo locale-gen en_US.UTF-8
+          export LC_ALL=en_US.UTF-8
+          export LANG=en_US.UTF-8
+          export LANGUAGE=en_US.UTF-8
+
       - name: Set up Bash and permissions
         run: |
           sudo apt-get update
           sudo apt-get install -y shellcheck
           chmod +x ./generate_documentation.sh
+          chmod +x ./*.sh
 
       - name: Generate docs for all scripts
         run: |
-          mkdir -p documentation
-          ./generate_documentation.sh *.sh
-          # Or, for all scripts in repo:
-          # find . -name '*.sh' -exec ./generate_documentation.sh {} +
+          mkdir -p docs
+          find . -name '*.sh' -exec ./generate_documentation.sh {} +
 
       - name: Upload generated docs as artifacts
         uses: actions/upload-artifact@v4
         with:
           name: bash-docs
-          path: documentation
+          path: docs
 
-      # Optional: Commit docs back to the repository (requires GITHUB_TOKEN and write permissions)
       - name: Commit and push updated docs
         if: github.ref == 'refs/heads/main'
         run: |
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
-          git add documentation/
+          git add docs/
           git diff --cached --quiet || git commit -m "Automated docs update [ci skip]"
           git push
