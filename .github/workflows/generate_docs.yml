@@ -8,6 +8,9 @@ on:
     paths:
       - '**.sh'
 
+permissions:
+  contents: write
+
 jobs:
   docs:
     runs-on: ubuntu-latest
