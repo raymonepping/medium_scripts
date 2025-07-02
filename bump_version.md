@@ -1,6 +1,6 @@
-# bump_version.sh - 2025-07-02 16:13:55
+# bump_version.sh - 2025-07-02 16:21:53
 
-[![Version](https://img.shields.io/badge/version-1.12.0-blue.svg)](./bump_version.sh) [![Docs](https://img.shields.io/badge/docs-generated-success.svg)](./docs/bump_version.md) [![Lint](https://img.shields.io/badge/lint-passing-brightgreen)](https://www.shellcheck.net/) [![File Size](https://img.shields.io/badge/size-6.9K-yellow)](./bump_version.sh) [![Updated](https://img.shields.io/badge/updated-2025--07--02-blue)](./bump_version.sh) [![Bash](https://img.shields.io/badge/bash-5--2--37-red)](https://www.gnu.org/software/bash/)
+[![Version](https://img.shields.io/badge/version-1.12.0-purple.svg)](./bump_version.sh) [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/bump_version.md) [![Lint](https://img.shields.io/badge/lint-passing-brightgreen)](https://www.shellcheck.net/) [![File Size](https://img.shields.io/badge/size-6.9K-yellow)](./bump_version.sh) [![Updated](https://img.shields.io/badge/updated-2025--07--02-blue)](./bump_version.sh) [![Bash](https://img.shields.io/badge/bash-5--2--37-red)](https://www.gnu.org/software/bash/)
 
 ## Table of Contents
 - High-level summary - bump_version.sh
