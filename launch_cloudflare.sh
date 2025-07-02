@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+VERSION="0.0.1"
 
 OUTPUT_FILE="cloudflare_tunnels.md"
 
