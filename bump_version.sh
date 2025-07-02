@@ -1,0 +1,171 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# --- Color codes ---
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[1;36m'
+RESET='\033[0m'
+
+# --- Defaults ---
+WRITE_CHANGELOG=1
+DRY_RUN=0
+
+# --- Parse Args ---
+RAW_SCRIPT="${1:-}"
+BUMP_TYPE="${2:---patch}"
+
+if [[ -z "$RAW_SCRIPT" ]]; then
+  echo -e "${RED}❌ Usage: bump_version <script_name> [--patch|--minor|--major] [--changelog true|false] [--dry-run]${RESET}"
+  exit 1
+fi
+
+if [[ "${1:-}" == "--help" ]]; then
+  cat <<EOF
+$(basename "$0") [script.sh] [--patch|--minor|--major] [--changelog true|false] [--dry-run] [--help]
+
+Automates semantic version bumps in Bash scripts with VERSION="x.y.z" format.
+
+  --patch         Increment the patch version (default)
+  --minor         Increment the minor version (reset patch)
+  --major         Increment the major version (reset minor/patch)
+  --changelog     true (default) or false; log bumps to CHANGELOG.md
+  --dry-run       Show what would happen, but make no changes
+  --help          Show this help and exit
+
+Examples:
+  ./bump_version.sh myscript.sh --patch
+  ./bump_version.sh myscript.sh --minor --changelog false
+  ./bump_version.sh myscript.sh --major --dry-run
+EOF
+  exit 0
+fi
+
+# Parse extra flags
+shift 2 || true
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --changelog)
+      [[ "${2:-}" == "false" ]] && WRITE_CHANGELOG=0
+      shift 2
+      ;;
+    --dry-run)
+      DRY_RUN=1
+      shift
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+
+if [[ ! "$BUMP_TYPE" =~ ^--?(patch|minor|major)$ ]]; then
+  echo -e "${RED}❌ Invalid bump type: $BUMP_TYPE${RESET}"
+  exit 1
+fi
+BUMP_TYPE="${BUMP_TYPE/--/}"
+
+# --- Script path resolution ---
+SCRIPT_PATH="$RAW_SCRIPT"
+[[ ! -f "$SCRIPT_PATH" && -f "${RAW_SCRIPT}.sh" ]] && SCRIPT_PATH="${RAW_SCRIPT}.sh"
+[[ ! -f "$SCRIPT_PATH" && -f "./${RAW_SCRIPT}" ]] && SCRIPT_PATH="./${RAW_SCRIPT}"
+if [[ ! -f "$SCRIPT_PATH" ]]; then
+  echo -e "${RED}❌ Script not found: $SCRIPT_PATH${RESET}"
+  exit 1
+fi
+
+current_line=$(grep -E '^[[:space:]]*VERSION="[0-9]+\.[0-9]+\.[0-9]+"' "$SCRIPT_PATH" | head -n1 || true)
+if [[ -z "$current_line" ]]; then
+  echo -e "${RED}❌ VERSION line not found in $SCRIPT_PATH${RESET}"
+  exit 1
+fi
+current_version=$(echo "$current_line" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+IFS='.' read -r major minor patch <<< "$current_version"
+old_version="$current_version"
+
+[[ "${DEBUG:-0}" == "1" ]] && echo -e "${CYAN}DEBUG: current_version=$current_version | major=$major minor=$minor patch=$patch${RESET}"
+
+case "$BUMP_TYPE" in
+  major)
+    ((major++)); minor=0; patch=0
+    msg_type="🔵"
+    ;;
+  minor)
+    if [[ "$minor" -eq 0 ]]; then
+      minor=1; patch=0
+    else
+      ((minor++)); patch=0
+    fi
+    msg_type="🟣"
+    ;;
+  patch)
+    if [[ "$patch" -eq 0 ]]; then
+      patch=1
+    else
+      ((patch++))
+    fi
+    msg_type="🟢"
+    ;;
+esac
+
+new_version="${major}.${minor}.${patch}"
+
+if [[ "$old_version" == "$new_version" ]]; then
+  echo -e "${YELLOW}⚠️  No change: Version already at $new_version (forcing to next logical version)${RESET}"
+  case "$BUMP_TYPE" in
+    minor)
+      ((minor++)); patch=0
+      ;;
+    patch)
+      ((patch++))
+      ;;
+  esac
+  new_version="${major}.${minor}.${patch}"
+fi
+
+# --- DRY RUN: show changes, don't write ---
+if [[ "$DRY_RUN" == "1" ]]; then
+  echo -e "${CYAN}🧪 [DRY RUN] Would update ${SCRIPT_PATH}: ${old_version} → ${new_version}${RESET}"
+  [[ "$WRITE_CHANGELOG" == "1" ]] && echo -e "${CYAN}🧪 [DRY RUN] Would update CHANGELOG.md${RESET}"
+  exit 0
+fi
+
+# --- Write version bump to script ---
+TMPFILE="$(dirname "$SCRIPT_PATH")/.bump_tmp_$$"
+awk -v v="VERSION=\"${new_version}\"" '
+  c==0 && /^[[:space:]]*VERSION="[0-9]+\.[0-9]+\.[0-9]+"/ { print v; c=1; next }
+  { print }
+' "$SCRIPT_PATH" > "$TMPFILE" && mv "$TMPFILE" "$SCRIPT_PATH"
+
+# --- Update or create CHANGELOG.md ---
+CHANGELOG="$(dirname "$SCRIPT_PATH")/CHANGELOG.md"
+timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+user=$(whoami)
+entry="${msg_type} ${timestamp} — ${user}: ${SCRIPT_PATH##*/} bumped from ${old_version} to ${new_version}"
+
+BADGE="[![version](https://img.shields.io/badge/version-${new_version}-blue)](https://github.com/raymonepping)"
+
+if [[ "$WRITE_CHANGELOG" == "1" ]]; then
+  if [[ -f "$CHANGELOG" ]]; then
+    echo -e "$entry" >> "$CHANGELOG"
+  else
+    echo -e "# CHANGELOG\n\n$entry" > "$CHANGELOG"
+  fi
+  awk -v badge="$BADGE" '
+    BEGIN{badge_inserted=0}
+    NR==1 && $0 ~ /^# CHANGELOG/ {
+      print $0; print badge; badge_inserted=1; next
+    }
+    $0 ~ /^\[\!\[version.*shields\.io\/badge\/version/ {next}
+    $0 ~ /^\!\[.*shields\.io\/badge\/version/ {next}
+    {print}
+    END{
+      if(!badge_inserted) print badge
+    }
+  ' "$CHANGELOG" > "$CHANGELOG.tmp" && mv "$CHANGELOG.tmp" "$CHANGELOG"
+  echo -e "${CYAN}📝 CHANGELOG updated: ${CHANGELOG}${RESET}"
+fi
+
+echo -e "${GREEN}✅ ${SCRIPT_PATH} bumped: ${old_version} → ${new_version}${RESET}"
+[[ "${DEBUG:-0}" == "1" ]] && tail -n 4 "$CHANGELOG"
