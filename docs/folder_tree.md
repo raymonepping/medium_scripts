@@ -1,30 +1,17 @@
-# folder_tree.sh - v1.5.6 - 2025-07-03 13:21:04
+# folder_tree.sh - v1.5.6 - 2025-07-03 11:22:17
 
 [![Version](https://img.shields.io/badge/version-1.5.6-purple.svg)](./folder_tree.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/folder_tree.md)
 [![Size](https://img.shields.io/badge/size-7.7KB-yellow)](./folder_tree.sh)
 [![Updated](https://img.shields.io/badge/updated-2025--07--03-blue)](./folder_tree.sh)
-[![Bash](https://img.shields.io/badge/bash-5--2--37-red)](https://www.gnu.org/software/bash/)
+[![Bash](https://img.shields.io/badge/bash-5--2--21-red)](https://www.gnu.org/software/bash/)
 
 ## Table of Contents
 - High-level summary - folder_tree.sh
 - Variables Set - folder_tree.sh
 
 ## High-level summary - folder_tree.sh
-- !/usr/bin/env bash
-- Default presets
-- 🧰 Back-end / scripting
-- ☕ Java / Maven / Gradle
-- 📦 JS tooling
-- 🎨 Vue / Nuxt
-- 🧾 Git / Infra
-- Ensure tree is available
-- Parse args
-- Resolve and validate target dir
-- Load config file
-- Git-tracked output mode
-- broot mode
-- Build tree args
+
 
 ## Variables Set - folder_tree.sh
 - BADGE1
