@@ -2,7 +2,9 @@
 
 🟣 2025-07-03 08:17:44 — raymon.epping: sanity_check.sh bumped from 1.0.0 to 1.0.1
 
-[![version](https://img.shields.io/badge/version-1.0.4-red)](https://github.com/raymonepping)
+[![version](https://img.shields.io/badge/version-1.0.5-red)](https://github.com/raymonepping)
+
+🟣 2025-07-03 09:27:59 — raymon.epping: sanity_check.sh bumped from 1.0.4 to 1.0.5
 
 🟣 2025-07-03 08:40:23 — raymon.epping: sanity_check.sh bumped from 1.0.3 to 1.0.4
 

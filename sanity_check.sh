@@ -1,7 +1,7 @@
 #!/opt/homebrew/bin/bash
 set -euo pipefail
 
-VERSION="1.0.4"
+VERSION="1.0.5"
 
 print_version() {
   local tool="$1"; shift

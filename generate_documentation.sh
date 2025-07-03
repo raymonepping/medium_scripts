@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="2.4.0"
-
-# -- Set top level variable for script execution --
+# shellcheck disable=SC2034
+VERSION="2.4.1"
+# shellcheck disable=SC2034
 TOP_LEVEL_CALL=true
 
 # --- Handle --help and --version flags early ---
@@ -20,20 +20,18 @@ if [[ "${1:-}" == "--help" ]]; then
   exit 0
 fi
 
-# --- Handle --version flag ---
 if [[ "${1:-}" == "--version" ]]; then
   echo "$0 version $VERSION"
   exit 0
 fi
 
 # --- Define configuration variables ---
+# shellcheck disable=SC2034
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUTPUT_DIR="$SCRIPT_DIR/docs"
 IGNORE_FILE="$SCRIPT_DIR/.doc_bash_ignore"
 LINT_ENABLED=false
 INCLUDE_LINT=false
-SUMMARY_MODE=false
-CLEAN_MODE=false
 STRICT_MODE=true
 MAX_DEPTH=10
 EMOJI_MODE=true
@@ -42,8 +40,10 @@ INCLUDE_CALLED_SCRIPTS=true
 mkdir -p "$OUTPUT_DIR"
 
 # --- Load ignore list ---
+# shellcheck disable=SC2034
 IGNORED_COMMANDS=("echo" "clear" "pwd" "read" "exit" "if" "fi" "then" "else" "while" "do" "done")
-[[ -f "$IGNORE_FILE" ]] && mapfile -t IGNORED_COMMANDS < "$IGNORE_FILE"
+# shellcheck disable=SC2034
+[[ -f "$IGNORE_FILE" ]] && mapfile -t IGNORED_COMMANDS <"$IGNORE_FILE"
 
 # --- Tool checks ---
 if command -v shellcheck &>/dev/null; then
@@ -55,22 +55,40 @@ command -v shfmt &>/dev/null && [[ -d "$SCRIPT_DIR/scripts" ]] && find "$SCRIPT_
 ARGS=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --depth)
-      if [[ -n "${2:-}" ]]; then MAX_DEPTH="$2"; shift
-      else echo "❌ Missing value for --depth"; shift; continue; fi ;;
-    --include-lint) INCLUDE_LINT=true ;;
-    --strict)
-      if [[ -n "${2:-}" ]]; then STRICT_MODE="$2"; shift
-      else echo "❌ Missing value for --strict"; shift; continue; fi ;;
-    --include-called-scripts)
-      if [[ -n "${2:-}" ]]; then
-        if [[ "$2" == "true" ]]; then INCLUDE_CALLED_SCRIPTS=true;
-        else INCLUDE_CALLED_SCRIPTS=false; fi
-        shift
-      else
-        echo "❌ Missing value for --include-called-scripts"; shift; continue;
-      fi ;;
-    *) ARGS+=("$1") ;;
+  --depth)
+    if [[ -n "${2:-}" ]]; then
+      MAX_DEPTH="$2"
+      shift
+    else
+      echo "❌ Missing value for --depth"
+      shift
+      continue
+    fi
+    ;;
+  --include-lint) INCLUDE_LINT=true ;;
+  --strict)
+    if [[ -n "${2:-}" ]]; then
+      STRICT_MODE="$2"
+      shift
+    else
+      echo "❌ Missing value for --strict"
+      shift
+      continue
+    fi
+    ;;
+  --include-called-scripts)
+    if [[ -n "${2:-}" ]]; then
+      if [[ "$2" == "true" ]]; then
+        INCLUDE_CALLED_SCRIPTS=true
+      else INCLUDE_CALLED_SCRIPTS=false; fi
+      shift
+    else
+      echo "❌ Missing value for --include-called-scripts"
+      shift
+      continue
+    fi
+    ;;
+  *) ARGS+=("$1") ;;
   esac
   shift
 done
@@ -78,7 +96,8 @@ set -- "${ARGS[@]}"
 
 # --- Utility: Emoji echo ---
 em() {
-  local emoji="$1"; shift
+  local emoji="$1"
+  shift
   if [[ "$EMOJI_MODE" == true ]]; then
     echo "$emoji $*"
   else
@@ -86,7 +105,6 @@ em() {
   fi
 }
 
-# Add this function near the top (with the other utility functions)
 clean_trailing_blank_lines() {
   local file="$1"
   awk '
@@ -96,10 +114,9 @@ clean_trailing_blank_lines() {
       for(i=NR;i>=1;i--) if(lines[i] ~ /[^[:space:]]/) { last=i; break }
       for(i=1;i<=last;i++) print lines[i]
     }
-  ' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+  ' "$file" >"${file}.tmp" && mv "${file}.tmp" "$file"
 }
 
-# --- Lint Badge Generation ---
 generate_lint_badge() {
   local file="$1"
   if [[ "$INCLUDE_LINT" == true ]]; then
@@ -108,7 +125,8 @@ generate_lint_badge() {
       return
     fi
     local issues badge_url
-    issues=$(shellcheck "$file" 2>/dev/null | grep -E '^[^ ]+:[0-9]+' | wc -l | tr -d ' ')
+    # --- FIX SC2126: use grep -c ---
+    issues=$(shellcheck "$file" 2>/dev/null | grep -cE '^[^ ]+:[0-9]+')
     if [[ "${issues:-0}" -eq 0 ]]; then
       badge_url="https://img.shields.io/badge/lint-passing-brightgreen"
     elif [[ "$issues" -le 9 ]]; then
@@ -120,29 +138,35 @@ generate_lint_badge() {
   fi
 }
 
-# --- Bash Version Badge Generation ---
 generate_bash_badge() {
   local bashv color badge
   bashv=$(bash --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1)
   [[ -z "$bashv" ]] && return
-  bashv="${bashv%%.0}"      
+  bashv="${bashv%%.0}"
   color="red"
   [[ "${bashv%%.*}" -lt 5 ]] && color="yellow"
   badge="[![Bash](https://img.shields.io/badge/bash-${bashv//./--}-$color)](https://www.gnu.org/software/bash/)"
   echo "$badge"
 }
 
-# --- File Size Badge Generation ---
 generate_size_badge() {
   local file="$1"
   local size badge
-  size=$(ls -lh "$file" 2>/dev/null | awk '{print $5}')
-  [[ -z "$size" ]] && return
+  # --- FIX SC2012: use stat + numfmt ---
+  if stat --version &>/dev/null; then
+    size=$(stat -c %s "$file")
+  else
+    size=$(stat -f %z "$file")
+  fi
+  if command -v numfmt &>/dev/null; then
+    size=$(numfmt --to=iec --suffix=B "$size")
+  else
+    size="${size}B"
+  fi
   badge="[![Size](https://img.shields.io/badge/size-${size// /%20}-yellow)](./$(basename "$file"))"
   echo "$badge"
 }
 
-# --- Last Updated Badge Generation ---
 generate_updated_badge() {
   local file="$1"
   local updated badge
@@ -152,7 +176,6 @@ generate_updated_badge() {
   echo "$badge"
 }
 
-# --- Compose Badges Line ---
 compose_badge_row() {
   local version="$1"
   local file="$2"
@@ -161,9 +184,9 @@ compose_badge_row() {
   badge_lines+=("[![Version](https://img.shields.io/badge/version-$version-purple.svg)](./$(basename "$file"))")
   badge_lines+=("[![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/$(basename "$file" .sh).md)")
 
-  # Only add if enabled and present
   [[ "$INCLUDE_LINT" == true ]] && {
-    local lint; lint="$(generate_lint_badge "$file")"
+    local lint
+    lint="$(generate_lint_badge "$file")"
     [[ -n "$lint" ]] && badge_lines+=("$lint")
   }
   local size updated bashv
@@ -179,7 +202,6 @@ compose_badge_row() {
   done
 }
 
-# --- Summary Extraction ---
 extract_summary() {
   local file="$1"
   if [[ "$STRICT_MODE" == true ]]; then
@@ -196,25 +218,23 @@ extract_summary() {
   fi
 }
 
-# --- Variable Extraction ---
 extract_variables() {
-  grep -E '^[[:space:]]*[A-Z_][A-Z0-9_]*=' "$1" \
-    | cut -d'=' -f1 | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//' \
-    | sort -u | awk 'NF { print "- " $0 }'
+  grep -E '^[[:space:]]*[A-Z_][A-Z0-9_]*=' "$1" |
+    cut -d'=' -f1 | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//' |
+    sort -u | awk 'NF { print "- " $0 }'
 }
 
-# --- Detect Called Scripts ---
 find_called_scripts() {
   local file="$1"
   grep -Eo '\b(\./)?[a-zA-Z0-9_\-]+\.sh\b' "$file" | sort -u
   grep -Eo '\b[a-zA-Z0-9_\-]+\b' "$file" | while read -r cmd; do
     [[ "$cmd" =~ \.sh$ ]] && continue
     [[ -f "./$cmd" && -x "./$cmd" ]] && echo "./$cmd"
-    [[ -x "$(command -v "$cmd")" ]] && file "$(command -v "$cmd")" | grep -qi "bash script" && echo "$(command -v "$cmd")"
+    # --- FIX SC2005: just output the command, not echo ---
+    [[ -x "$(command -v "$cmd")" ]] && file "$(command -v "$cmd")" | grep -qi "bash script" && command -v "$cmd"
   done
 }
 
-# --- Main Parser ---
 parse_script() {
   local file="$1"
   local depth="$2"
@@ -225,13 +245,13 @@ parse_script() {
   [[ "$depth" -gt "$MAX_DEPTH" ]] && return
   [[ " ${VISITED[*]} " == *" $file "* ]] && return
   VISITED+=("$file")
+  # shellcheck disable=SC2034
   GENERATED=1
 
   local base_name summary_section variable_section version timestamp has_version
   base_name="$(basename "$file" .sh)"
   summary_section=$(extract_summary "$file")
   variable_section=$(extract_variables "$file")
-  # -- Strictly extract only VERSION="..." (ignores VERSION_FILE etc)
   version=$(awk -F '"' '/^VERSION="/ {print $2; exit}' "$file")
   if [[ -z "$version" ]]; then
     version="0.0.0"
@@ -266,7 +286,7 @@ parse_script() {
     echo "## Variables Set - ${base_name}.sh"
     echo "$variable_section"
     echo
-  } >> "$output_file"
+  } >>"$output_file"
 
   if [[ "$INCLUDE_CALLED_SCRIPTS" == true ]]; then
     mapfile -t called_scripts < <(find_called_scripts "$file")
@@ -282,37 +302,35 @@ parse_script() {
   fi
 }
 
-# --- Generate Entry Point ---
 em "🚀" "Starting documentation generation..."
+# shellcheck disable=SC2034
 GENERATED=0
 
-fatal=0  # Only set to 1 if truly unrecoverable
+fatal=0
 
 for input in "${ARGS[@]}"; do
   if [[ -f "$input" ]]; then
     main_name="$(basename "$input" .sh)"
     output_file="$OUTPUT_DIR/$main_name.md"
-    : > "$output_file"
+    : >"$output_file"
     parse_script "$input" 0 "$output_file" true
   elif [[ -d "$input" ]]; then
     while IFS= read -r script; do
       main_name="$(basename "$script" .sh)"
       output_file="$OUTPUT_DIR/$main_name.md"
-      : > "$output_file"
+      : >"$output_file"
       parse_script "$script" 0 "$output_file" true
     done < <(find "$input" -name "*.sh")
   else
     em "❌" "Invalid input: $input"
-    # DO NOT exit, just continue to next
     continue
   fi
 done
 
-# --- Remove all trailing blank lines in generated markdown files ---
 em "🧹" "Tidying up markdown output in $OUTPUT_DIR ..."
 for md in "$OUTPUT_DIR"/*.md; do
   [[ -f "$md" ]] && clean_trailing_blank_lines "$md"
 done
 em "🎉" "All documentation is now perfectly clean!"
 
-exit $fatal  # Always exit 0 unless you add logic above to set fatal=1
+exit $fatal
