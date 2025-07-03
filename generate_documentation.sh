@@ -43,49 +43,49 @@ OUTPUT_DIR=""
 ARGS=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --output-dir)
-      OUTPUT_DIR="$2"
+  --output-dir)
+    OUTPUT_DIR="$2"
+    shift 2
+    ;;
+  --depth)
+    if [[ -n "${2:-}" ]]; then
+      MAX_DEPTH="$2"
       shift 2
-      ;;
-    --depth)
-      if [[ -n "${2:-}" ]]; then
-        MAX_DEPTH="$2"
-        shift 2
-      else
-        echo "❌ Missing value for --depth"
-        shift
-      fi
-      ;;
-    --include-lint)
-      INCLUDE_LINT=true
+    else
+      echo "❌ Missing value for --depth"
       shift
-      ;;
-    --strict)
-      if [[ -n "${2:-}" ]]; then
-        STRICT_MODE="$2"
-        shift 2
-      else
-        echo "❌ Missing value for --strict"
-        shift
-      fi
-      ;;
-    --include-called-scripts)
-      if [[ -n "${2:-}" ]]; then
-        if [[ "$2" == "true" ]]; then
-          INCLUDE_CALLED_SCRIPTS=true
-        else
-          INCLUDE_CALLED_SCRIPTS=false
-        fi
-        shift 2
-      else
-        echo "❌ Missing value for --include-called-scripts"
-        shift
-      fi
-      ;;
-    *)
-      ARGS+=("$1")
+    fi
+    ;;
+  --include-lint)
+    INCLUDE_LINT=true
+    shift
+    ;;
+  --strict)
+    if [[ -n "${2:-}" ]]; then
+      STRICT_MODE="$2"
+      shift 2
+    else
+      echo "❌ Missing value for --strict"
       shift
-      ;;
+    fi
+    ;;
+  --include-called-scripts)
+    if [[ -n "${2:-}" ]]; then
+      if [[ "$2" == "true" ]]; then
+        INCLUDE_CALLED_SCRIPTS=true
+      else
+        INCLUDE_CALLED_SCRIPTS=false
+      fi
+      shift 2
+    else
+      echo "❌ Missing value for --include-called-scripts"
+      shift
+    fi
+    ;;
+  *)
+    ARGS+=("$1")
+    shift
+    ;;
   esac
 done
 
@@ -96,7 +96,9 @@ fi
 mkdir -p "$OUTPUT_DIR"
 
 # --- Load ignore list ---
+# shellcheck disable=SC2034
 IGNORED_COMMANDS=("echo" "clear" "pwd" "read" "exit" "if" "fi" "then" "else" "while" "do" "done")
+# shellcheck disable=SC2034
 [[ -f "$IGNORE_FILE" ]] && mapfile -t IGNORED_COMMANDS <"$IGNORE_FILE"
 
 # --- Tool checks ---
@@ -323,6 +325,7 @@ resolve_input() {
 }
 
 em "🚀" "Starting documentation generation..."
+# shellcheck disable=SC2034
 GENERATED=0
 
 fatal=0
