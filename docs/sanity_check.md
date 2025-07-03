@@ -1,6 +1,6 @@
-# sanity_check.sh - v1.0.8 - 2025-07-03 12:43:16
+# sanity_check.sh - v1.0.9 - 2025-07-03 12:45:55
 
-[![Version](https://img.shields.io/badge/version-1.0.8-purple.svg)](./sanity_check.sh)
+[![Version](https://img.shields.io/badge/version-1.0.9-purple.svg)](./sanity_check.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/sanity_check.md)
 [![Size](https://img.shields.io/badge/size-7.9KB-yellow)](./sanity_check.sh)
 [![Updated](https://img.shields.io/badge/updated-2025--07--03-blue)](./sanity_check.sh)
