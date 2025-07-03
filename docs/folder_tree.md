@@ -1,6 +1,6 @@
-# folder_tree.sh - v1.5.4 - 2025-07-03 10:12:49
+# folder_tree.sh - v1.5.6 - 2025-07-03 10:32:31
 
-[![Version](https://img.shields.io/badge/version-1.5.4-purple.svg)](./folder_tree.sh)
+[![Version](https://img.shields.io/badge/version-1.5.6-purple.svg)](./folder_tree.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/folder_tree.md)
 [![Size](https://img.shields.io/badge/size-7.7KB-yellow)](./folder_tree.sh)
 [![Updated](https://img.shields.io/badge/updated-2025--07--03-blue)](./folder_tree.sh)
