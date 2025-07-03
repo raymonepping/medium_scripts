@@ -4,18 +4,19 @@ set -euo pipefail
 # shellcheck disable=SC2034
 VERSION="1.0.9"
 
+# --- 🛠️ Print version of a tool, or warn if not installed ---
 print_version() {
   local tool="$1"; shift
   if ! command -v "$tool" &>/dev/null; then
     echo -e "⚠️  $tool: \033[1;33mnot installed\033[0m"
     return
   fi
-  # Try common version flags, fall back to subcommands if needed.
+  # --- Try common version flags, fall back to subcommands if needed. ---
   local out=""
   for flag in --version version -v "-V"; do
     out="$("$tool" $flag 2>&1 | grep -iE 'version|[0-9]+\.[0-9]+' | head -n 1)" && [[ -n "$out" ]] && break
   done
-  # Some tools only report with subcommands (e.g. terraform version, dockerfmt version)
+  # --- Some tools only report with subcommands (e.g. terraform version, dockerfmt version) ---
   if [[ -z "$out" && "$tool" =~ ^(terraform|dockerfmt|syft|grype|trivy)$ ]]; then
     out="$("$tool" version 2>&1 | grep -iE 'version|[0-9]+\.[0-9]+' | head -n 1)"
   fi
@@ -26,6 +27,7 @@ print_version() {
   fi
 }
 
+# --- 📝 Generating: Help message --- 
 if [[ "${1:-}" == "--help" ]]; then
   cat <<EOF
 sanity_check.sh [OPTIONS] <file1> [file2 ...]
@@ -55,6 +57,7 @@ EOF
   exit 0
 fi
 
+# -- 📝 Generating: Formatters and Linters Configuration ---
 declare -A FORMATTERS=(
   [sh]="shfmt -w -i 2"
   [py]="black"
@@ -71,10 +74,11 @@ declare -A LINTERS=(
   [Dockerfile]="hadolint"
 )
 
+# -- 📝 Generating: Supported Extensions ---
 SUPPORTED_EXTENSIONS=(sh py js tf Dockerfile)
 MISSING_TOOL_WARNINGS=()
 
-# 🛠️ Default settings
+# --- 🛠️ Default settings ---
 MODE="all"
 FILES=()
 PROBLEM_FILES=()
@@ -82,7 +86,7 @@ REPORT=false
 QUIET=false
 SUMMARY=false
 
-# 🎛️ Parse arguments
+# --- 🎛️ Parse arguments ---
 while [[ $# -gt 0 ]]; do
   case "$1" in
   --fix) MODE="fix"; shift ;;
@@ -114,7 +118,7 @@ while [[ $# -gt 0 ]]; do
     ;;
     --version)
     echo "🧪 Tool Versions:"
-    # Tool groups: label:(tools...)
+    # --- 🧪 Tool groups: label:(tools...) ---
     declare -A TOOL_GROUPS=(
       [Bash]="shfmt shellcheck"
       [Python]="black pylint"
@@ -159,7 +163,7 @@ if [[ ${#FILES[@]} -eq 0 ]]; then
   exit 1
 fi
 
-# 🚀 Process each file
+# --- 🚀 Process each file ---
 for SCRIPT in "${FILES[@]}"; do
   BASENAME="$(basename "$SCRIPT")"
   EXT="${BASENAME##*.}"
@@ -203,7 +207,7 @@ for SCRIPT in "${FILES[@]}"; do
   fi
 done
 
-# 🔇 Quiet mode result output
+# --- 🔇 Quiet mode result output ---
 if [[ "$QUIET" == true ]]; then
   if [[ ${#PROBLEM_FILES[@]} -eq 0 ]]; then
     echo -e "\n✅ All checks completed (no issues found)."
@@ -215,7 +219,7 @@ if [[ "$QUIET" == true ]]; then
   exit 0
 fi
 
-# 📊 Summary output
+# --- 📊 Summary output ---
 if [[ "$SUMMARY" == true ]]; then
   if [[ ${#PROBLEM_FILES[@]} -gt 0 ]]; then
     echo -e "\n⚠️  \033[1;31mLint issues were found in the following files:\033[0m"
@@ -227,7 +231,7 @@ if [[ "$SUMMARY" == true ]]; then
   fi
 fi
 
-# ✅ Final status
+# --- ✅ Final status ---
 if [[ ${#MISSING_TOOL_WARNINGS[@]} -gt 0 ]]; then
   echo -e "\n⚠️  Some tools were missing:"
   for warn in "${MISSING_TOOL_WARNINGS[@]}"; do echo " - $warn"; done
@@ -239,7 +243,7 @@ else
   echo -e "\n✅ All checks completed."
 fi
 
-# 🧾 Markdown report (auto-generated on --report OR missing tools/issues)
+# --- 🧾 Markdown report (auto-generated on --report OR missing tools/issues) ---
 if [[ "$REPORT" == true || ${#MISSING_TOOL_WARNINGS[@]} -gt 0 || ${#PROBLEM_FILES[@]} -gt 0 ]]; then
   REPORT_FILE="sanity_check.md"
   {
