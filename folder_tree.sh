@@ -18,7 +18,7 @@ HINT_FILE="$HOME/.broot_hint_seen"
 
 declare -A EXCLUDE_PRESETS
 
-# 🧰 Back-end / scripting
+# 🧰 Back-end / scripting remove
 EXCLUDE_PRESETS[node]="node_modules dist .next .vite"
 EXCLUDE_PRESETS[python]="__pycache__ .venv venv *.pyc"
 EXCLUDE_PRESETS[terraform]=".terraform"
