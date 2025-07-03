@@ -1,7 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-VERSION="1.0.3"
+# shellcheck disable=SC2034
+VERSION="1.0.4"
 
 QUIET=0
 if [[ "${1:-}" == "--quiet" || "${1:-}" == "-q" ]]; then
@@ -34,44 +35,45 @@ COMMIT_MESSAGE="$DD/$MM/$YYYY - Updated configuration and fixed bugs"
 
 # Ensure ssh-agent is running
 if [ -z "${SSH_AUTH_SOCK:-}" ]; then
-  eval "$(ssh-agent -s)" > /dev/null
-  ssh-add -A > /dev/null 2>&1 || true
+  eval "$(ssh-agent -s)" >/dev/null
+  ssh-add -A >/dev/null 2>&1 || true
 fi
 
 # Remove tracked FOLDER_TREE.md if ignored
 if git ls-files --error-unmatch FOLDER_TREE.md &>/dev/null; then
   if grep -qF "FOLDER_TREE.md" .gitignore; then
     msg "🧹 Removing FOLDER_TREE.md from Git tracking..."
-    git rm --cached FOLDER_TREE.md > /dev/null
+    git rm --cached FOLDER_TREE.md >/dev/null
   fi
 fi
 
-git add . > /dev/null
+git add . >/dev/null
 
 # --- Commit staged changes if any ---
 DID_COMMIT=0
 if ! git diff --cached --quiet; then
   msg "📦 Committing staged changes before pull/rebase..."
-  git commit -m "$COMMIT_MESSAGE" > /dev/null
+  git commit -m "$COMMIT_MESSAGE" >/dev/null
   DID_COMMIT=1
 fi
 
 # --- Stash unstaged changes if any, then rebase ---
 if ! git diff --quiet; then
   msg "💾 Stashing unstaged local changes before rebase..."
-  git stash -u > /dev/null
-  if ! git pull --rebase origin main > /dev/null 2>&1; then
-    echo "❌ Pull/rebase failed! Please resolve manually."; exit 1
+  git stash -u >/dev/null
+  if ! git pull --rebase origin main >/dev/null 2>&1; then
+    echo "❌ Pull/rebase failed! Please resolve manually."
+    exit 1
   fi
-  git stash pop > /dev/null 2>&1 || true
+  git stash pop >/dev/null 2>&1 || true
 else
-  git pull --rebase origin main > /dev/null 2>&1
+  git pull --rebase origin main >/dev/null 2>&1
 fi
 
-git add . > /dev/null
+git add . >/dev/null
 if ! git diff --cached --quiet; then
   msg "📦 Committing new staged changes..."
-  git commit -m "$COMMIT_MESSAGE" > /dev/null
+  git commit -m "$COMMIT_MESSAGE" >/dev/null
   DID_COMMIT=1
 fi
 
@@ -83,14 +85,15 @@ try_push() {
   while [[ $attempt -le $max_attempts ]]; do
     # Only push if there are commits ahead
     if [[ $(git log origin/main..HEAD --oneline | wc -l) -gt 0 ]]; then
-      if git push origin main > /dev/null 2>&1; then
+      if git push origin main >/dev/null 2>&1; then
         DID_PUSH=1
         msg "🚀 Successfully pushed to origin/main."
         return 0
       else
         msg "⚠️  Push failed (maybe due to remote updates). Trying pull --rebase and re-push..."
-        if ! git pull --rebase origin main > /dev/null 2>&1; then
-          echo "❌ Pull/rebase failed! Please resolve manually."; exit 1
+        if ! git pull --rebase origin main >/dev/null 2>&1; then
+          echo "❌ Pull/rebase failed! Please resolve manually."
+          exit 1
         fi
         ((attempt++))
       fi
@@ -117,7 +120,7 @@ fi
 
 if command -v folder_tree &>/dev/null; then
   msg "🌳 Generating updated folder tree..."
-  folder_tree --preset terraform,github --output markdown > /dev/null
+  folder_tree --preset terraform,github --output markdown >/dev/null
 else
   msg "⚠️  'folder_tree' command not found — skipping tree update."
 fi

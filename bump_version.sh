@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # shellcheck disable=SC2034
-VERSION="1.12.2"
+VERSION="1.12.4"
 
 # --- Define Colors for Output ---
 RED='\033[1;31m'
@@ -142,6 +142,32 @@ if [[ "$DRY_RUN" == "1" ]]; then
   [[ "$WRITE_CHANGELOG" == "1" ]] && echo -e "${CYAN}🧪 [DRY RUN] Would update CHANGELOG.md${RESET}"
   exit 0
 fi
+
+########################################################################################
+# --- Insert # shellcheck disable=SC2034 above VERSION if missing ---
+tmpfile_sc="$(dirname "$SCRIPT_PATH")/.bump_sc_tmp_$$"
+sc_added=0
+found=0
+while IFS= read -r line || [[ -n "$line" ]]; do
+  if [[ "$line" =~ ^[[:space:]]*VERSION=\"[0-9]+\.[0-9]+\.[0-9]+\" ]]; then
+    found=1
+    # Check previous line by reading file into an array (expensive, but fine for short files)
+    prev_line="$(tail -n +$(($(grep -n "$line" "$SCRIPT_PATH" | head -n1 | cut -d: -f1)-1)) "$SCRIPT_PATH" | head -n1 || true)"
+    if [[ "$prev_line" != "# shellcheck disable=SC2034" ]]; then
+      echo "# shellcheck disable=SC2034" >> "$tmpfile_sc"
+      sc_added=1
+    fi
+  fi
+  echo "$line" >> "$tmpfile_sc"
+done < "$SCRIPT_PATH"
+
+if [[ $found -eq 1 ]]; then
+  mv "$tmpfile_sc" "$SCRIPT_PATH"
+  [[ $sc_added -eq 1 ]] && echo -e "${CYAN}🧪 Added '# shellcheck disable=SC2034' above VERSION for ShellCheck compliance.${RESET}"
+else
+  rm -f "$tmpfile_sc"
+fi
+########################################################################################
 
 # --- Replace VERSION in script safely ---
 TMPFILE="$(dirname "$SCRIPT_PATH")/.bump_tmp_$$"
