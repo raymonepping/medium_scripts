@@ -1,6 +1,6 @@
-# bump_version.sh - v1.12.0 - 2025-07-03 06:41:01
+# bump_version.sh - v1.12.1 - 2025-07-03 06:46:18
 
-[![Version](https://img.shields.io/badge/version-1.12.0-purple.svg)](./bump_version.sh)
+[![Version](https://img.shields.io/badge/version-1.12.1-purple.svg)](./bump_version.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/bump_version.md)
 [![Size](https://img.shields.io/badge/size-5.7K-yellow)](./bump_version.sh)
 [![Updated](https://img.shields.io/badge/updated-2025--07--03-blue)](./bump_version.sh)
