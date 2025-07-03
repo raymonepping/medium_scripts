@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # shellcheck disable=SC2034
-VERSION="2.4.1"
+VERSION="2.4.4"
 
 # shellcheck disable=SC2034
 TOP_LEVEL_CALL=true
@@ -16,6 +16,7 @@ if [[ "${1:-}" == "--help" ]]; then
   echo "  --include-lint              Include lint badge in Markdown"
   echo "  --include-called-scripts    true|false (default: true)"
   echo "  --strict <true|false>       Only parse comments starting with '# ---' (default: true)"
+  echo "  --output-dir <dir>          Output directory for docs (default: ./docs where you run the script)"
   echo "  --help                      Show this help message"
   echo "  --version                   Show script version"
   exit 0
@@ -27,9 +28,7 @@ if [[ "${1:-}" == "--version" ]]; then
 fi
 
 # --- Define configuration variables ---
-# shellcheck disable=SC2034
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-OUTPUT_DIR="$SCRIPT_DIR/docs"
 IGNORE_FILE="$SCRIPT_DIR/.doc_bash_ignore"
 LINT_ENABLED=false
 INCLUDE_LINT=false
@@ -38,12 +37,66 @@ MAX_DEPTH=10
 EMOJI_MODE=true
 VISITED=()
 INCLUDE_CALLED_SCRIPTS=true
+OUTPUT_DIR=""
+
+# --- CLI flags, including output dir ---
+ARGS=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --output-dir)
+      OUTPUT_DIR="$2"
+      shift 2
+      ;;
+    --depth)
+      if [[ -n "${2:-}" ]]; then
+        MAX_DEPTH="$2"
+        shift 2
+      else
+        echo "❌ Missing value for --depth"
+        shift
+      fi
+      ;;
+    --include-lint)
+      INCLUDE_LINT=true
+      shift
+      ;;
+    --strict)
+      if [[ -n "${2:-}" ]]; then
+        STRICT_MODE="$2"
+        shift 2
+      else
+        echo "❌ Missing value for --strict"
+        shift
+      fi
+      ;;
+    --include-called-scripts)
+      if [[ -n "${2:-}" ]]; then
+        if [[ "$2" == "true" ]]; then
+          INCLUDE_CALLED_SCRIPTS=true
+        else
+          INCLUDE_CALLED_SCRIPTS=false
+        fi
+        shift 2
+      else
+        echo "❌ Missing value for --include-called-scripts"
+        shift
+      fi
+      ;;
+    *)
+      ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+# --- Set OUTPUT_DIR to ./docs if not set ---
+if [[ -z "${OUTPUT_DIR}" ]]; then
+  OUTPUT_DIR="$PWD/docs"
+fi
 mkdir -p "$OUTPUT_DIR"
 
 # --- Load ignore list ---
-# shellcheck disable=SC2034
 IGNORED_COMMANDS=("echo" "clear" "pwd" "read" "exit" "if" "fi" "then" "else" "while" "do" "done")
-# shellcheck disable=SC2034
 [[ -f "$IGNORE_FILE" ]] && mapfile -t IGNORED_COMMANDS <"$IGNORE_FILE"
 
 # --- Tool checks ---
@@ -51,49 +104,6 @@ if command -v shellcheck &>/dev/null; then
   LINT_ENABLED=true
 fi
 command -v shfmt &>/dev/null && [[ -d "$SCRIPT_DIR/scripts" ]] && find "$SCRIPT_DIR/scripts" -name "*.sh" -exec shfmt -w {} +
-
-# --- CLI flags ---
-ARGS=()
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-  --depth)
-    if [[ -n "${2:-}" ]]; then
-      MAX_DEPTH="$2"
-      shift
-    else
-      echo "❌ Missing value for --depth"
-      shift
-      continue
-    fi
-    ;;
-  --include-lint) INCLUDE_LINT=true ;;
-  --strict)
-    if [[ -n "${2:-}" ]]; then
-      STRICT_MODE="$2"
-      shift
-    else
-      echo "❌ Missing value for --strict"
-      shift
-      continue
-    fi
-    ;;
-  --include-called-scripts)
-    if [[ -n "${2:-}" ]]; then
-      if [[ "$2" == "true" ]]; then
-        INCLUDE_CALLED_SCRIPTS=true
-      else INCLUDE_CALLED_SCRIPTS=false; fi
-      shift
-    else
-      echo "❌ Missing value for --include-called-scripts"
-      shift
-      continue
-    fi
-    ;;
-  *) ARGS+=("$1") ;;
-  esac
-  shift
-done
-set -- "${ARGS[@]}"
 
 # --- Utility: Emoji echo ---
 em() {
@@ -126,7 +136,6 @@ generate_lint_badge() {
       return
     fi
     local issues badge_url
-    # --- FIX SC2126: use grep -c ---
     issues=$(shellcheck "$file" 2>/dev/null | grep -cE '^[^ ]+:[0-9]+')
     if [[ "${issues:-0}" -eq 0 ]]; then
       badge_url="https://img.shields.io/badge/lint-passing-brightgreen"
@@ -153,7 +162,6 @@ generate_bash_badge() {
 generate_size_badge() {
   local file="$1"
   local size badge
-  # --- FIX SC2012: use stat + numfmt ---
   if stat --version &>/dev/null; then
     size=$(stat -c %s "$file")
   else
@@ -231,8 +239,8 @@ find_called_scripts() {
   grep -Eo '\b[a-zA-Z0-9_\-]+\b' "$file" | while read -r cmd; do
     [[ "$cmd" =~ \.sh$ ]] && continue
     [[ -f "./$cmd" && -x "./$cmd" ]] && echo "./$cmd"
-    # --- FIX SC2005: just output the command, not echo ---
-    [[ -x "$(command -v "$cmd")" ]] && file "$(command -v "$cmd")" | grep -qi "bash script" && command -v "$cmd"
+    # Resolve from $PATH if not in current dir
+    [[ -x "$(command -v "$cmd" 2>/dev/null)" ]] && file "$(command -v "$cmd")" | grep -qi "bash script" && command -v "$cmd"
   done
 }
 
@@ -246,7 +254,6 @@ parse_script() {
   [[ "$depth" -gt "$MAX_DEPTH" ]] && return
   [[ " ${VISITED[*]} " == *" $file "* ]] && return
   VISITED+=("$file")
-  # shellcheck disable=SC2034
   GENERATED=1
 
   local base_name summary_section variable_section version timestamp has_version
@@ -303,25 +310,41 @@ parse_script() {
   fi
 }
 
+# --- Resolve input scripts (supporting $PATH and relative/absolute) ---
+resolve_input() {
+  local input="$1"
+  if [[ -f "$input" || -d "$input" ]]; then
+    echo "$input"
+  elif command -v "$input" &>/dev/null; then
+    command -v "$input"
+  else
+    echo ""
+  fi
+}
+
 em "🚀" "Starting documentation generation..."
-# shellcheck disable=SC2034
 GENERATED=0
 
 fatal=0
 
 for input in "${ARGS[@]}"; do
-  if [[ -f "$input" ]]; then
-    main_name="$(basename "$input" .sh)"
+  real_input="$(resolve_input "$input")"
+  if [[ -z "$real_input" ]]; then
+    em "❌" "Invalid input: $input"
+    continue
+  fi
+  if [[ -f "$real_input" ]]; then
+    main_name="$(basename "$real_input" .sh)"
     output_file="$OUTPUT_DIR/$main_name.md"
     : >"$output_file"
-    parse_script "$input" 0 "$output_file" true
-  elif [[ -d "$input" ]]; then
+    parse_script "$real_input" 0 "$output_file" true
+  elif [[ -d "$real_input" ]]; then
     while IFS= read -r script; do
       main_name="$(basename "$script" .sh)"
       output_file="$OUTPUT_DIR/$main_name.md"
       : >"$output_file"
       parse_script "$script" 0 "$output_file" true
-    done < <(find "$input" -name "*.sh")
+    done < <(find "$real_input" -name "*.sh")
   else
     em "❌" "Invalid input: $input"
     continue
