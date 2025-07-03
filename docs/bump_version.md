@@ -1,8 +1,8 @@
-# bump_version.sh - v1.12.2 - 2025-07-03 07:36:00
+# bump_version.sh - v1.12.4 - 2025-07-03 08:37:12
 
-[![Version](https://img.shields.io/badge/version-1.12.2-purple.svg)](./bump_version.sh)
+[![Version](https://img.shields.io/badge/version-1.12.4-purple.svg)](./bump_version.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/bump_version.md)
-[![Size](https://img.shields.io/badge/size-5.7KB-yellow)](./bump_version.sh)
+[![Size](https://img.shields.io/badge/size-6.8KB-yellow)](./bump_version.sh)
 [![Updated](https://img.shields.io/badge/updated-2025--07--03-blue)](./bump_version.sh)
 [![Bash](https://img.shields.io/badge/bash-5--2--21-red)](https://www.gnu.org/software/bash/)
 
@@ -23,6 +23,7 @@
 - Validate extracted version
 - Calculate next version
 - DRY RUN
+- Insert # shellcheck disable=SC2034 above VERSION if missing
 - Replace VERSION in script safely
 - Write to CHANGELOG if enabled
 

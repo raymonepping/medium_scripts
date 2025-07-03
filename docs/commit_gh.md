@@ -1,6 +1,6 @@
-# commit_gh.sh - v1.0.3 - 2025-07-03 07:36:03
+# commit_gh.sh - v1.0.4 - 2025-07-03 08:37:15
 
-[![Version](https://img.shields.io/badge/version-1.0.3-purple.svg)](./commit_gh.sh)
+[![Version](https://img.shields.io/badge/version-1.0.4-purple.svg)](./commit_gh.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/commit_gh.md)
 [![Size](https://img.shields.io/badge/size-3.6KB-yellow)](./commit_gh.sh)
 [![Updated](https://img.shields.io/badge/updated-2025--07--03-blue)](./commit_gh.sh)
