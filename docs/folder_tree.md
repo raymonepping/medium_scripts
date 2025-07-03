@@ -1,4 +1,4 @@
-# folder_tree.sh - v1.5.6 - 2025-07-03 12:57:00
+# folder_tree.sh - v1.5.6 - 2025-07-03 13:16:17
 
 [![Version](https://img.shields.io/badge/version-1.5.6-purple.svg)](./folder_tree.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/folder_tree.md)
