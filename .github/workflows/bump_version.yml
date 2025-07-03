@@ -37,8 +37,9 @@ jobs:
         run: |
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
-          # Robust cross-platform recursive git add (no globs)
+          # Robust add (no globs)
           find . -type f -name '*.sh' -exec git add {} +
           find . -type f -name 'CHANGELOG_*.md' -exec git add {} +
           git diff --cached --quiet || git commit -m "ci: auto-bump Bash script versions [ci skip]"
+          git pull --rebase origin main || true
           git push
