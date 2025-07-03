@@ -2,7 +2,9 @@
 
 🟣 2025-07-02 10:57:45 — raymon.epping: bump_version.sh bumped from 1.0.0 to 1.0.1
 
-[![version](https://img.shields.io/badge/version-1.12.0-red)](https://github.com/raymonepping)
+[![version](https://img.shields.io/badge/version-1.12.1-red)](https://github.com/raymonepping)
+
+🟣 2025-07-03 08:45:07 — raymon.epping: bump_version.sh bumped from 1.12.0 to 1.12.1
 
 🔵 2025-07-02 13:33:47 — raymon.epping: bump_version.sh bumped from 1.11.0 to 1.12.0
 

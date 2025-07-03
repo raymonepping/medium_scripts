@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
-VERSION="1.12.0"
+
+# shellcheck disable=SC2034
+VERSION="1.12.1"
 
 # --- Define Colors for Output ---
 RED='\033[1;31m'
@@ -48,17 +50,17 @@ fi
 shift 2 || true
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --changelog)
-      [[ "${2:-}" == "false" ]] && WRITE_CHANGELOG=0
-      shift 2
-      ;;
-    --dry-run)
-      DRY_RUN=1
-      shift
-      ;;
-    *)
-      shift
-      ;;
+  --changelog)
+    [[ "${2:-}" == "false" ]] && WRITE_CHANGELOG=0
+    shift 2
+    ;;
+  --dry-run)
+    DRY_RUN=1
+    shift
+    ;;
+  *)
+    shift
+    ;;
   esac
 done
 
@@ -88,7 +90,7 @@ if [[ -z "$current_line" ]]; then
   exit 1
 fi
 current_version=$(echo "$current_line" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
-IFS='.' read -r major minor patch <<< "$current_version"
+IFS='.' read -r major minor patch <<<"$current_version"
 
 # --- Normalize version numbers ---
 major=$((10#$major))
@@ -103,15 +105,24 @@ fi
 
 # --- Calculate next version ---
 case "$BUMP_TYPE" in
-  major)
-    new_major=$((major + 1)); new_minor=0; new_patch=0; msg_type="🟥"
-    ;;
-  minor)
-    new_major=$major; new_minor=$((minor + 1)); new_patch=0; msg_type="🔵"
-    ;;
-  patch)
-    new_major=$major; new_minor=$minor; new_patch=$((patch + 1)); msg_type="🟣"
-    ;;
+major)
+  new_major=$((major + 1))
+  new_minor=0
+  new_patch=0
+  msg_type="🟥"
+  ;;
+minor)
+  new_major=$major
+  new_minor=$((minor + 1))
+  new_patch=0
+  msg_type="🔵"
+  ;;
+patch)
+  new_major=$major
+  new_minor=$minor
+  new_patch=$((patch + 1))
+  msg_type="🟣"
+  ;;
 esac
 
 new_version="${new_major}.${new_minor}.${new_patch}"
@@ -119,9 +130,9 @@ new_version="${new_major}.${new_minor}.${new_patch}"
 if [[ "$current_version" == "$new_version" ]]; then
   echo -e "${YELLOW}⚠️  No change: Version already at $new_version (forcing next logical version)${RESET}"
   case "$BUMP_TYPE" in
-    major) new_version="$((new_major + 1)).0.0" ;;
-    minor) new_version="${new_major}.$((new_minor + 1)).0" ;;
-    patch) new_version="${new_major}.${new_minor}.$((new_patch + 1))" ;;
+  major) new_version="$((new_major + 1)).0.0" ;;
+  minor) new_version="${new_major}.$((new_minor + 1)).0" ;;
+  patch) new_version="${new_major}.${new_minor}.$((new_patch + 1))" ;;
   esac
 fi
 
@@ -140,7 +151,7 @@ was_executable=0
 awk -v v="VERSION=\"${new_version}\"" '
   c==0 && /^[[:space:]]*VERSION="[0-9]+\.[0-9]+\.[0-9]+"/ { print v; c=1; next }
   { print }
-' "$SCRIPT_PATH" > "$TMPFILE" && mv "$TMPFILE" "$SCRIPT_PATH"
+' "$SCRIPT_PATH" >"$TMPFILE" && mv "$TMPFILE" "$SCRIPT_PATH"
 
 [[ "$was_executable" == "1" ]] && chmod +x "$SCRIPT_PATH"
 
@@ -156,7 +167,7 @@ if [[ "$WRITE_CHANGELOG" == "1" ]]; then
     mkdir -p "$(dirname "$CHANGELOG")"
   fi
   if [[ ! -f "$CHANGELOG" ]]; then
-    echo -e "# CHANGELOG: ${SCRIPT_BASENAME}\n\n$entry\n" > "$CHANGELOG"
+    echo -e "# CHANGELOG: ${SCRIPT_BASENAME}\n\n$entry\n" >"$CHANGELOG"
   else
     awk -v badge="$BADGE" -v entry="$entry" '
       BEGIN { badge_inserted=0; entry_inserted=0 }
@@ -169,7 +180,7 @@ if [[ "$WRITE_CHANGELOG" == "1" ]]; then
         if (!badge_inserted) print badge
         if (!entry_inserted) { print ""; print entry }
       }
-    ' "$CHANGELOG" > "$tmp_changelog" && mv "$tmp_changelog" "$CHANGELOG"
+    ' "$CHANGELOG" >"$tmp_changelog" && mv "$tmp_changelog" "$CHANGELOG"
   fi
   echo -e "${CYAN}📝 CHANGELOG updated: ${CHANGELOG}${RESET}"
 fi
