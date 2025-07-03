@@ -1,7 +1,8 @@
 #!/opt/homebrew/bin/bash
 set -euo pipefail
 
-VERSION="1.0.8"
+# shellcheck disable=SC2034
+VERSION="1.0.9"
 
 print_version() {
   local tool="$1"; shift

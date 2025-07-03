@@ -10,6 +10,7 @@ Thumbs.db
 *.swp
 *.pid
 FOLDER_TREE.md
+CHANGELOG_*.md
 
 ########################################
 # 💻 IDE & Editor Configs
