@@ -1,4 +1,4 @@
-# bump_version.sh - v1.12.4 - 2025-07-03 08:37:12
+# bump_version.sh - v1.12.4 - 2025-07-03 10:12:06
 
 [![Version](https://img.shields.io/badge/version-1.12.4-purple.svg)](./bump_version.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/bump_version.md)
