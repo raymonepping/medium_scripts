@@ -3,6 +3,7 @@ set -euo pipefail
 
 # shellcheck disable=SC2034
 VERSION="2.4.1"
+
 # shellcheck disable=SC2034
 TOP_LEVEL_CALL=true
 
