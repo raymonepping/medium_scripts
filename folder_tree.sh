@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+VERSION="1.5.3"
+
 # Default presets
-VERSION="1.5.2"
 TARGET_DIR="."
 EXCLUDES=()
 USED_PRESETS=()
@@ -230,7 +231,6 @@ done
 log "📂 Target: $(basename "$TARGET_DIR")"
 [[ "${#USED_PRESETS[@]}" -gt 0 ]] && log "📦 Presets: ${USED_PRESETS[*]}"
 [[ -f "$CONFIG_FILE" ]] && log "🛡️ Excludes from: $(basename "$CONFIG_FILE")" || log "🛡️ Using built-in presets only"
-log ""
 [[ "$VERBOSE" == true ]] && log "🔍 TREE_ARGS: ${TREE_ARGS[*]}"
 
 pushd "$TARGET_DIR" >/dev/null
@@ -238,9 +238,18 @@ TREE_OUTPUT="$(tree "${TREE_ARGS[@]}" . 2>/dev/null || true)"
 popd >/dev/null
 
 if [[ "$OUTPUT_MODE" == "markdown" ]]; then
+  if [[ "$QUIET" == false ]]; then
+    echo "🌳 Generating updated folder tree..."
+  fi
+  BADGE1="[![Folder Tree](https://img.shields.io/badge/folder--tree-generated-blue?logo=tree&style=flat-square)](./FOLDER_TREE.md)"
+  BADGE2="[![Folder Tree Version](https://img.shields.io/badge/folder--tree-v${VERSION}-purple?style=flat-square)](./FOLDER_TREE.md)"
+
   TREE_MD="$(
     echo "## 📁 Folder Tree - $(date '+%Y-%m-%d %H:%M:%S') ##"
-    echo ''
+    echo ""
+    echo "$BADGE1"
+    echo "$BADGE2"
+    echo ""
     echo "$TREE_OUTPUT" | awk '
       BEGIN { indent = ""; }
       {
@@ -254,12 +263,18 @@ if [[ "$OUTPUT_MODE" == "markdown" ]]; then
     echo -e "\n---\n"
   )"
   OUTPUT_FILE="$TARGET_DIR/FOLDER_TREE.md"
-  if [[ "$HISTORY_MODE" == true ]]; then
-    echo "$TREE_MD" >> "$OUTPUT_FILE"
-    [[ "$QUIET" == false ]] && echo "📜 Markdown output appended to: $OUTPUT_FILE"
-  else
-    echo "$TREE_MD" > "$OUTPUT_FILE"
-    [[ "$QUIET" == false ]] && echo "📜 Markdown output written to (overwrite): $OUTPUT_FILE"
+  echo "$TREE_MD" > "$OUTPUT_FILE"
+
+  # Safe relative path for output
+  if [[ "$QUIET" == false ]]; then
+    if command -v realpath &>/dev/null && realpath --help 2>&1 | grep -q -- '--relative-to'; then
+      REL_PATH=$(realpath --relative-to="." "$OUTPUT_FILE")
+    elif command -v python3 &>/dev/null; then
+      REL_PATH=$(python3 -c "import os.path; print(os.path.relpath('$OUTPUT_FILE', '.'))")
+    else
+      REL_PATH="$OUTPUT_FILE"
+    fi
+    echo "📜 Markdown output written to (overwrite): $REL_PATH"
   fi
   [[ -z "$TREE_OUTPUT" && "$QUIET" == false ]] && echo "⚠️  Nothing to show. All contents excluded or directory is empty."
   exit 0
