@@ -1,8 +1,8 @@
-# generate_documentation.sh - v2.4.0 - 2025-07-03 06:46:19
+# generate_documentation.sh - v2.4.1 - 2025-07-03 07:29:33
 
-[![Version](https://img.shields.io/badge/version-2.4.0-purple.svg)](./generate_documentation.sh)
+[![Version](https://img.shields.io/badge/version-2.4.1-purple.svg)](./generate_documentation.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/generate_documentation.md)
-[![Size](https://img.shields.io/badge/size-9.6K-yellow)](./generate_documentation.sh)
+[![Size](https://img.shields.io/badge/size-9.3KB-yellow)](./generate_documentation.sh)
 [![Updated](https://img.shields.io/badge/updated-2025--07--03-blue)](./generate_documentation.sh)
 [![Bash](https://img.shields.io/badge/bash-5--2--21-red)](https://www.gnu.org/software/bash/)
 
@@ -12,27 +12,14 @@
 
 ## High-level summary - generate_documentation.sh
 - Handle --help and --version flags early
-- Handle --version flag
 - Define configuration variables
 - Load ignore list
 - Tool checks
 - CLI flags
 - Utility: Emoji echo
-- Lint Badge Generation
-- Bash Version Badge Generation
-- File Size Badge Generation
-- Last Updated Badge Generation
-- Compose Badges Line
-- Summary Extraction
-- Variable Extraction
-- Detect Called Scripts
-- Main Parser
-- Generate Entry Point
-- Remove all trailing blank lines in generated markdown files
 
 ## Variables Set - generate_documentation.sh
 - ARGS
-- CLEAN_MODE
 - EMOJI_MODE
 - GENERATED
 - IGNORED_COMMANDS
@@ -44,7 +31,6 @@
 - OUTPUT_DIR
 - SCRIPT_DIR
 - STRICT_MODE
-- SUMMARY_MODE
 - TOP_LEVEL_CALL
 - VERSION
 - VISITED
