@@ -10,7 +10,7 @@ print_version() {
     echo -e "⚠️  $tool: \033[1;33mnot installed\033[0m"
     return
   fi
-  # Try common version flags, fall back to subcommands if needed
+  # Try common version flags, fall back to subcommands if needed (e.g. terraform, dockerfmt)
   local out=""
   for flag in --version version -v "-V"; do
     out="$("$tool" $flag 2>&1 | grep -iE 'version|[0-9]+\.[0-9]+' | head -n 1)" && [[ -n "$out" ]] && break
