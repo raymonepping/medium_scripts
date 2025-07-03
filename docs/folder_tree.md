@@ -1,38 +1,45 @@
-# folder_tree.sh - v1.5.6 - 2025-07-03 11:24:44
+## 📁 Folder Tree - 2025-07-03 13:24:28 ##
 
-[![Version](https://img.shields.io/badge/version-1.5.6-purple.svg)](./folder_tree.sh)
-[![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/folder_tree.md)
-[![Size](https://img.shields.io/badge/size-7.7KB-yellow)](./folder_tree.sh)
-[![Updated](https://img.shields.io/badge/updated-2025--07--03-blue)](./folder_tree.sh)
-[![Bash](https://img.shields.io/badge/bash-5--2--21-red)](https://www.gnu.org/software/bash/)
+[![Folder Tree](https://img.shields.io/badge/folder--tree-generated-blue?logo=tree&style=flat-square)](./FOLDER_TREE.md)
+[![Folder Tree Version](https://img.shields.io/badge/folder--tree-v1.5.4-purple?style=flat-square)](./FOLDER_TREE.md)
 
-## Table of Contents
-- High-level summary - folder_tree.sh
-- Variables Set - folder_tree.sh
+./
+├── docs/
+│   ├── build_container.md
+│   ├── build_image.md
+│   ├── bump_version.md
+│   ├── commit_gh.md
+│   ├── folder_tree.md
+│   ├── generate_documentation.md
+│   ├── launch_cloudflare.md
+│   ├── sanity_check.md
+│   └── slim_container.md
+├── documentation/
+│   └── placeholder.md
+├── _dockerignore_global
+├── _gitignore_global
+├── _treeignore
+├── bump_version.md
+├── bump_version.sh
+├── CHANGELOG_bump_version.md
+├── CHANGELOG_commit_gh.md
+├── CHANGELOG_folder_tree.md
+├── CHANGELOG_generate_documentation.md
+├── CHANGELOG_sanity_check.md
+├── CHANGELOG.md
+├── commit_gh.sh*
+├── FOLDER_TREE.md
+├── folder_tree.sh
+├── generate_documentation.sh*
+├── LICENSE
+├── README.md
+├── sanity_check*
+├── sanity_check.md
+├── sanity_check.sh*
+├── test
+├── trigger_git_scan
+└── VERSION_BADGE.md
 
-## High-level summary - folder_tree.sh
+3 directories, 33 files
 
-
-## Variables Set - folder_tree.sh
-- BADGE1
-- BADGE2
-- COLOR
-- CONFIG_FILE
-- EXCLUDES
-- FILE
-- HINT_FILE
-- HISTORY_MODE
-- IFS
-- OLD_VERSION
-- OUTPUT_FILE
-- OUTPUT_MODE
-- QUIET
-- REL_PATH
-- SHOW_VERSION
-- TARGET_DIR
-- TREE_ARGS
-- TREE_MD
-- TREE_OUTPUT
-- USED_PRESETS
-- VERBOSE
-- VERSION
+---
