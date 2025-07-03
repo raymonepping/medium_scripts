@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="1.5.6"
+# shellcheck disable=SC2034
+VERSION="1.5.7"
 
 # Default presets
 TARGET_DIR="."
