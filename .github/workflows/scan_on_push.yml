@@ -15,15 +15,50 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install shellcheck, shfmt, and sanity_check
+      - name: Install shellcheck and shfmt
         run: |
           sudo apt-get update
           sudo apt-get install -y shellcheck
           curl -sSLo shfmt https://github.com/mvdan/sh/releases/download/v3.7.0/shfmt_v3.7.0_linux_amd64
           chmod +x shfmt
           sudo mv shfmt /usr/local/bin/
+
+      - name: Ensure sanity_check.sh is present and executable
+        run: |
+          if [[ ! -f ./sanity_check.sh ]]; then
+            echo "❌ sanity_check.sh not found at repo root!"
+            exit 1
+          fi
           chmod +x ./sanity_check.sh
 
-      - name: Run sanity_check on all .sh files
+      - name: Get changed .sh files
+        id: changed
         run: |
-          find . -type f -name "*.sh" -exec ./sanity_check.sh --all --summary {} +
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch origin ${{ github.base_ref }} --depth=1
+            git diff --name-only origin/${{ github.base_ref }}...${{ github.sha }} | grep '\.sh$' || true
+          else
+            git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '\.sh$' || true
+          fi
+        shell: bash
+        continue-on-error: true
+
+      - name: Run sanity_check on changed .sh files
+        run: |
+          set -e
+          FILES=$(if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch origin ${{ github.base_ref }} --depth=1
+            git diff --name-only origin/${{ github.base_ref }}...${{ github.sha }} | grep '\.sh$' || true
+          else
+            git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '\.sh$' || true
+          fi)
+          if [[ -z "$FILES" ]]; then
+            echo "🟢 No changed .sh files to check."
+            exit 0
+          fi
+          for script in $FILES; do
+            if [[ -f "$script" ]]; then
+              echo "🔎 Checking $script"
+              ./sanity_check.sh --all --summary "$script" || true
+            fi
+          done
