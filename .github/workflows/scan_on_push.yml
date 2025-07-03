@@ -1,0 +1,29 @@
+name: Bash Sanity Check
+
+on:
+  push:
+    paths:
+      - '**.sh'
+  pull_request:
+    paths:
+      - '**.sh'
+
+jobs:
+  sanity-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck, shfmt, and sanity_check
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          curl -sSLo shfmt https://github.com/mvdan/sh/releases/download/v3.7.0/shfmt_v3.7.0_linux_amd64
+          chmod +x shfmt
+          sudo mv shfmt /usr/local/bin/
+          chmod +x ./sanity_check.sh
+
+      - name: Run sanity_check on all .sh files
+        run: |
+          find . -type f -name "*.sh" -exec ./sanity_check.sh --all --summary {} +
