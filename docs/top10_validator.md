@@ -1,6 +1,6 @@
-# top10_validator.sh - v2.1.2 - 2025-07-05 05:44:52
+# top10_validator.sh - v2.1.5 - 2025-07-05 05:53:21
 
-[![Version](https://img.shields.io/badge/version-2.1.2-purple.svg)](./top10_validator.sh)
+[![Version](https://img.shields.io/badge/version-2.1.5-purple.svg)](./top10_validator.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/top10_validator.md)
 [![Size](https://img.shields.io/badge/size-13KB-yellow)](./top10_validator.sh)
 [![Updated](https://img.shields.io/badge/updated-2025--07--05-blue)](./top10_validator.sh)
@@ -28,6 +28,7 @@
 - Disable strict mode for grep/parsing sections
 - Run checks 10 to 0
 - Output Results
+- function for asses risk
 - Final Score Calculation
 - Build Summary Block
 - Terminal output
