@@ -69,7 +69,7 @@ log() { [[ $QUIET -eq 0 ]] && echo -e "$@"; echo -e "$@" >> "${LOGFILE}"; }
 
 # --- Read Leaks, Filter by Scenario ---
 if [[ -n "$SCENARIO" ]]; then
-  LEAKS=$(jq -c --arg scenario "$SCENARIO" '.leaks[] | select(.scenario == $scenario)' "$INPUT")
+  LEAKS=$(jq -c --arg scenario "$SCENARIO" '.leaks[] | select((.scenario | ascii_downcase) == ($scenario | ascii_downcase))' "$INPUT")
 else
   LEAKS=$(jq -c '.leaks[]' "$INPUT")
 fi
@@ -79,10 +79,10 @@ fi
 # --- Parse Languages ---
 IFS=',' read -r -a LANG_ARRAY <<< "$LANGS_TO_GEN"
 should_generate() {
-  local lang="$1"
-  [[ "${LANGS_TO_GEN}" == "all" ]] && return 0
+  local lang="${1,,}"         # Lowercase
+  [[ "${LANGS_TO_GEN,,}" == "all" ]] && return 0
   for sel in "${LANG_ARRAY[@]}"; do
-    [[ "$sel" == "$lang" ]] && return 0
+    [[ "${sel,,}" == "$lang" ]] && return 0
   done
   return 1
 }
@@ -163,7 +163,7 @@ declare -A HEADER_DONE
 log "# Vault Radar Demo Leak Seed Run: $RUNID ($TIMESTAMP)"
 echo "$LEAKS_TO_USE" | while IFS= read -r leak; do
   [[ -z "$leak" ]] && continue
-  LANGS=$(jq -r '.languages[]' <<<"$leak")
+  LANGS=$(jq -r '.languages[]' <<<"$leak" | awk '{print tolower($0)}')
   for lang in "${!OUTFILES[@]}"; do
     if should_generate "$lang" && grep -qw "$lang" <<<"$LANGS"; then
       echo "$lang" >> "${TMP_GEN_FILE}"
