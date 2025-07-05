@@ -4,6 +4,31 @@ set -euo pipefail
 # shellcheck disable=SC2034
 VERSION="1.0.4"
 
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  cat <<EOF
+Usage: commit_gh [--quiet]
+
+Automates common Git commit and push operations with smart handling:
+
+  • Detects and handles rebase/merge conflicts
+  • Stashes local changes before rebasing
+  • Adds/commits/pushes only when needed
+  • Auto-generates commit messages with timestamp
+  • Integrates with Dependabot if enabled
+  • Regenerates FOLDER_TREE.md if folder_tree is installed
+
+Options:
+  --quiet, -q   Suppress most output (still shows important errors)
+  --help, -h    Show this help and exit
+
+Examples:
+  ./commit_gh.sh
+  ./commit_gh.sh --quiet
+
+EOF
+  exit 0
+fi
+
 QUIET=0
 if [[ "${1:-}" == "--quiet" || "${1:-}" == "-q" ]]; then
   QUIET=1
