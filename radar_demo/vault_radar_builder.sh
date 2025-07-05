@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # Vault_Radar_builder.sh
 # Generate realistic "leak" scripts for Vault Radar demo/testing.
 
-VERSION="1.0.0"
+# shellcheck disable=SC2034
+VERSION="1.0.1"
 AUTHOR="raymon.epping"
 TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S')"
 RUNID="$(date +%s)-$RANDOM"
@@ -101,11 +103,12 @@ die() {
 [[ ! -f "$INPUT" ]] && die "Input file $INPUT not found."
 command -v jq >/dev/null || die "'jq' is required."
 
-mkdir -p "$OUTDIR"
+mkdir -p "${OUTDIR}"
+: >"${LOGFILE}"
 
 log() {
   [[ $QUIET -eq 0 ]] && echo -e "$@"
-  echo -e "$@" >>"$LOGFILE"
+  echo -e "$@" >>"${LOGFILE}"
 }
 
 # --- Read Leaks, Filter by Scenario ---
@@ -133,6 +136,7 @@ MIN=$(jq '.output_size_range.min' "$INPUT")
 MAX=$(jq '.output_size_range.max' "$INPUT")
 COUNT=$((RANDOM % (MAX - MIN + 1) + MIN))
 LEAKS_TO_USE=$(echo "$LEAKS" | shuf | head -n "$COUNT")
+[[ -z "$LEAKS_TO_USE" ]] && die "No leaks selected for chosen filters."
 
 # --- Prepare Metadata ---
 template_subst() {
@@ -147,16 +151,16 @@ template_subst() {
 
 # --- Output Files Map ---
 declare -A OUTFILES=(
-  [bash]="$OUTDIR/Vault_Radar_trigger.sh"
-  [python]="$OUTDIR/Vault_Radar_trigger.py"
-  [node]="$OUTDIR/Vault_Radar_trigger.js"
-  [docker]="$OUTDIR/Vault_Radar_trigger.Dockerfile"
-  [terraform]="$OUTDIR/Vault_Radar_trigger.tf"
-  [md]="$OUTDIR/Vault_Radar_leaks_report.md"
+  [bash]="${OUTDIR}/Vault_Radar_trigger.sh"
+  [python]="${OUTDIR}/Vault_Radar_trigger.py"
+  [node]="${OUTDIR}/Vault_Radar_trigger.js"
+  [docker]="${OUTDIR}/Vault_Radar_trigger.Dockerfile"
+  [terraform]="${OUTDIR}/Vault_Radar_trigger.tf"
+  [md]="${OUTDIR}/Vault_Radar_leaks_report.md"
 )
 
 for lang in "${!OUTFILES[@]}"; do
-  [[ $DRYRUN -eq 0 ]] && >"${OUTFILES[$lang]}"
+  [[ $DRYRUN -eq 0 ]] && : >"${OUTFILES[$lang]}"
 done
 
 # --- Generate Headers ---
@@ -210,10 +214,12 @@ inject_md() {
   jq -r '. | "| "+.category+" | "+.label+" | "+.value+" | "+.severity+" | "+(.languages|join(","))+" | "+(.author // "")+" | "+(.source // "")+" | "+(.demo_notes // "")+" | "+(.scenario // "")+" |"' <<<"$1"
 }
 
-# --- Main Output Loop ---
+# --- Main Output Loop (robust, read line by line) ---
 log "# Vault Radar Demo Leak Seed Run: $RUNID ($TIMESTAMP)"
 declare -A generated
-for leak in $LEAKS_TO_USE; do
+echo "$LEAKS_TO_USE" | while IFS= read -r leak; do
+  # Skip empty lines (can happen if less leaks than requested)
+  [[ -z "$leak" ]] && continue
   LANGS=$(jq -r '.languages[]' <<<"$leak")
   for lang in "${!OUTFILES[@]}"; do
     if should_generate "$lang" && grep -qw "$lang" <<<"$LANGS"; then
@@ -249,22 +255,22 @@ done
 
 # --- Write Cleanup Script ---
 if [[ $DRYRUN -eq 0 ]]; then
-  cat <<EOC >"$CLEANUP_SCRIPT"
+  cat <<EOC >"${CLEANUP_SCRIPT}"
 #!/bin/bash
-echo "Cleaning up all Vault Radar demo outputs in: $OUTDIR"
-rm -f ${OUTFILES[@]}
-rm -f "$LOGFILE" "$CLEANUP_SCRIPT"
+echo "Cleaning up all Vault Radar demo outputs in: ${OUTDIR}"
+rm -f "${OUTFILES[@]}"
+rm -f "${LOGFILE}" "${CLEANUP_SCRIPT}"
 echo "Cleanup complete."
 EOC
-  chmod +x "$CLEANUP_SCRIPT"
+  chmod +x "${CLEANUP_SCRIPT}"
 fi
 
 # --- Run Lint/Sanity Check if Requested ---
 if [[ $LINT -eq 1 && $DRYRUN -eq 0 ]]; then
   if [[ -f "sanity_check.sh" ]]; then
     log "Running sanity_check.sh on outputs..."
-    ./sanity_check.sh "$OUTDIR" >"$OUTDIR/sanity_check_report.md"
-    log "Sanity check output: $OUTDIR/sanity_check_report.md"
+    ./sanity_check.sh "${OUTDIR}" >"${OUTDIR}/sanity_check_report.md"
+    log "Sanity check output: ${OUTDIR}/sanity_check_report.md"
   else
     log "sanity_check.sh not found, skipping lint."
   fi
@@ -274,13 +280,13 @@ fi
 if [[ $QUIET -eq 0 ]]; then
   log "✅ Run complete. Generated files:"
   for lang in "${!OUTFILES[@]}"; do
-    if [[ "${generated[$lang]}" == "1" && $DRYRUN -eq 0 ]]; then
+    if [[ "${generated[$lang]:-0}" == "1" && $DRYRUN -eq 0 ]]; then
       sample=$(head -n 8 "${OUTFILES[$lang]}" | tail -n 1)
-      log " - ${OUTFILES[$lang]} (sample: $(echo $sample | head -c 60))"
+      log " - ${OUTFILES[$lang]} (sample: $(echo "$sample" | head -c 60))"
     elif should_generate "$lang"; then
       log "⚠️  No leaks generated for $lang (missing leaks or scenario?)"
     fi
   done
   [[ $DRYRUN -eq 1 ]] && log "(Dry run: no files written.)"
-  log "To cleanup: $CLEANUP_SCRIPT"
+  log "To cleanup: ${CLEANUP_SCRIPT}"
 fi
