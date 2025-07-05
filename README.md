@@ -33,8 +33,7 @@ Use the CLI or automate via CI for PRs or merges.
 
 📦 Sample GitHub Workflow
 yaml
-Kopiëren
-Bewerken
+
 # .github/workflows/sanity-check.yml
 name: Sanity Check
 
