@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+VERSION="0.0.1"
+echo "$VERSION"
+
 # -------- COLOR & FORMAT DEFINITIONS --------
 color_reset=$'\e[0m'
 color_red=$'\e[31m'
@@ -9,8 +12,6 @@ color_yellow=$'\e[33m'
 color_blue=$'\e[34m'
 color_cyan=$'\e[36m'
 color_bold=$'\e[1m'
-color_dim=$'\e[2m'
-color_white=$'\e[97m'
 color_status=$'\e[37m'
 
 shake_on=$'\e[5m'
@@ -60,10 +61,13 @@ FILE_FOOTER="footer.tpl"
 GITIGNORE_SOURCES=("$SCRIPTS_FOLDER/.gitignore" "$HOME/.gitignore_global")
 
 # -------- Logging / Output --------
-log()    { echo "${color_status}${icon_step} $*${color_reset}"; }
-ok()     { echo "${color_bold}${color_green}${icon_ok} $*${color_reset}"; }
-warn()   { echo "${color_bold}${color_yellow}${icon_warn} $*${color_reset}"; }
-fail()   { echo "${color_bold}${color_red}${shake_on}${icon_err} $*${shake_off}${color_reset}"; exit 1; }
+log() { echo "${color_status}${icon_step} $*${color_reset}"; }
+ok() { echo "${color_bold}${color_green}${icon_ok} $*${color_reset}"; }
+warn() { echo "${color_bold}${color_yellow}${icon_warn} $*${color_reset}"; }
+fail() {
+  echo "${color_bold}${color_red}${shake_on}${icon_err} $*${shake_off}${color_reset}"
+  exit 1
+}
 banner() { echo -e "\n${color_cyan}${color_bold}==== $* ====${color_reset}"; }
 
 # -------- Progress Bar --------
@@ -81,8 +85,8 @@ progress() {
 # -------- Early --help/--version --------
 for arg in "$@"; do
   case "$arg" in
-    --help)
-      cat <<EOF
+  --help)
+    cat <<EOF
 Usage: $0 [--create true|false] [--build true|false] [--fresh true|false] [--language <lang>] [--scenario <scenario>]
            [--commit true|false] [--request true|false]
   All file locations (scripts folder, .json, builder) are set at the top of the script.
@@ -101,26 +105,47 @@ Flags:
 
 Set REPO_NAME at the top if you want to change the demo repo/folder name.
 EOF
-      exit 0
-      ;;
-    --version)
-      echo "medium_radar_love_git.sh version 1.0.0"
-      exit 0
-      ;;
+    exit 0
+    ;;
+  --version)
+    echo "$(basename "$0") version: $VERSION"
+    exit 0
+    ;;
   esac
 done
 
 # -------- Parse Flags --------
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --create)        CREATE="$2"; shift 2 ;;
-    --build)         BUILD="$2"; shift 2 ;;
-    --fresh)         FRESH="$2"; shift 2 ;;
-    --language)      LANGUAGE="$2"; shift 2 ;;
-    --scenario)      SCENARIO="$2"; shift 2 ;;
-    --commit)        COMMIT="$2"; shift 2 ;;
-    --request)       REQUEST="$2"; shift 2 ;;
-    *) fail "Unknown option: $1" ;;
+  --create)
+    CREATE="$2"
+    shift 2
+    ;;
+  --build)
+    BUILD="$2"
+    shift 2
+    ;;
+  --fresh)
+    FRESH="$2"
+    shift 2
+    ;;
+  --language)
+    LANGUAGE="$2"
+    shift 2
+    ;;
+  --scenario)
+    SCENARIO="$2"
+    shift 2
+    ;;
+  --commit)
+    COMMIT="$2"
+    shift 2
+    ;;
+  --request)
+    REQUEST="$2"
+    shift 2
+    ;;
+  *) fail "Unknown option: $1" ;;
   esac
 done
 
@@ -143,7 +168,7 @@ copy_gitignore() {
       return
     fi
   done
-  echo "# Auto-generated .gitignore for Radar Love" > "$PROJECT_FOLDER/.gitignore"
+  echo "# Auto-generated .gitignore for Radar Love" >"$PROJECT_FOLDER/.gitignore"
   warn "No .gitignore template found, created a default."
 }
 
@@ -176,7 +201,7 @@ generate_readme_from_template() {
       gsub("{{DATE}}", dt);
       print;
     }
-  ' "$template" > "$output"
+  ' "$template" >"$output"
 
   ok "Generated README.md from template: $template"
 }
@@ -192,7 +217,7 @@ copy_docs_and_license() {
       if [[ "$file" == "README.md" ]]; then
         generate_readme_from_template
       elif [[ "$file" == "LICENSE" ]]; then
-        echo "MIT License" > "$dst"
+        echo "MIT License" >"$dst"
         warn "No LICENSE found; created placeholder."
       fi
     fi
@@ -203,7 +228,7 @@ copy_docs_and_license() {
 setup_precommit_hook() {
   local HOOK_PATH="$PROJECT_FOLDER/.git/hooks/pre-commit"
   if command -v sanity_check &>/dev/null; then
-    cat > "$HOOK_PATH" <<'EOF'
+    cat >"$HOOK_PATH" <<'EOF'
 #!/bin/bash
 set -euo pipefail
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.sh$|\.py$|\.js$|\.tf$|Dockerfile$' || true)
@@ -276,8 +301,8 @@ build_leaky_branch() {
     ok "Added demo leaks with $FILE_BUILDER"
   else
     mkdir -p radar_demo
-    echo "AWS_ACCESS_KEY_ID=AKIA7SDF3R28QXLN4WTY" > radar_demo/leak.env
-    echo "AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYkq8RxCjJ" >> radar_demo/leak.env
+    echo "AWS_ACCESS_KEY_ID=AKIA7SDF3R28QXLN4WTY" >radar_demo/leak.env
+    echo "AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYkq8RxCjJ" >>radar_demo/leak.env
     git add radar_demo/leak.env
     git commit -m "Add static leaky secret for demo"
     warn "$FILE_BUILDER not found, added static secret"
@@ -365,22 +390,33 @@ trigger_pr_and_scan() {
 # -------- MAIN --------
 banner "${icon_push}${icon_ok}${icon_branch} $REPO_NAME: Cloudy Modular Secret Demo Pipeline!"
 
-progress 5; check_github_auth
+progress 5
+check_github_auth
 
-progress 9;  copy_gitignore
-progress 10; copy_inputs
-progress 11; copy_docs_and_license
+progress 9
+copy_gitignore
+progress 10
+copy_inputs
+progress 11
+copy_docs_and_license
 
-progress 20; $CREATE    && create_repo
+progress 20
+$CREATE && create_repo
 
-progress 60; $BUILD     && build_leaky_branch
-progress 70; $BUILD     && run_bump_version
-progress 80; $BUILD     && run_sanity_check
-progress 85; $BUILD && auto_commit_generated_files
+progress 60
+$BUILD && build_leaky_branch
+progress 70
+$BUILD && run_bump_version
+progress 80
+$BUILD && run_sanity_check
+progress 85
+$BUILD && auto_commit_generated_files
 
-progress 90; $COMMIT    && commit_gh_if_needed
+progress 90
+$COMMIT && commit_gh_if_needed
 
-progress 100; $REQUEST  && trigger_pr_and_scan
+progress 100
+$REQUEST && trigger_pr_and_scan
 
 sleep 2
 progress 100
@@ -396,8 +432,7 @@ fi
 # Oasis-style repo status check
 cd "$PROJECT_FOLDER"
 echo ""
-git status --short | grep . \
-  && echo -e "${color_red}❌ I need some time in the sunshine!${color_reset}" \
-  || echo -e "${color_green}🎶 In my mind my dreams are real 🎸.${color_reset}"
+git status --short | grep . &&
+  echo -e "${color_red}❌ I need some time in the sunshine!${color_reset}" ||
+  echo -e "${color_green}🎶 In my mind my dreams are real 🎸.${color_reset}"
 cd - >/dev/null
-
