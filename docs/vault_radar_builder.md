@@ -1,8 +1,8 @@
-# vault_radar_builder.sh - v1.0.0 - 2025-07-05 07:12:32
+# vault_radar_builder.sh - v1.0.0 - 2025-07-05 07:24:24
 
 [![Version](https://img.shields.io/badge/version-1.0.0-purple.svg)](./vault_radar_builder.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/vault_radar_builder.md)
-[![Size](https://img.shields.io/badge/size-8.2KB-yellow)](./vault_radar_builder.sh)
+[![Size](https://img.shields.io/badge/size-8.3KB-yellow)](./vault_radar_builder.sh)
 [![Updated](https://img.shields.io/badge/updated-2025--07--05-blue)](./vault_radar_builder.sh)
 [![Bash](https://img.shields.io/badge/bash-5--2--21-red)](https://www.gnu.org/software/bash/)
 
