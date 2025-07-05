@@ -1,8 +1,6 @@
-# radar_love.sh - 2025-07-05 17:26:36
+# radar_love.sh - v0.0.1 - 2025-07-05 19:22:40
 
-⚠️ No version detected — please run `bump_version` against this script.
-
-[![Version](https://img.shields.io/badge/version-0.0.0-purple.svg)](./radar_love.sh)
+[![Version](https://img.shields.io/badge/version-0.0.1-purple.svg)](./radar_love.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/radar_love.md)
 [![Size](https://img.shields.io/badge/size-13KB-yellow)](./radar_love.sh)
 [![Updated](https://img.shields.io/badge/updated-2025--07--05-blue)](./radar_love.sh)
@@ -34,6 +32,7 @@
 - SCENARIO
 - SCRIPTS_FOLDER
 - STAGED_FILES
+- VERSION
 
 - High-level summary - commit_gh.sh
 - Variables Set - commit_gh.sh
