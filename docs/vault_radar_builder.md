@@ -1,8 +1,8 @@
-# vault_radar_builder.sh - v1.0.1 - 2025-07-05 07:25:44
+# vault_radar_builder.sh - v1.0.1 - 2025-07-05 07:39:30
 
 [![Version](https://img.shields.io/badge/version-1.0.1-purple.svg)](./vault_radar_builder.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/vault_radar_builder.md)
-[![Size](https://img.shields.io/badge/size-8.6KB-yellow)](./vault_radar_builder.sh)
+[![Size](https://img.shields.io/badge/size-8.9KB-yellow)](./vault_radar_builder.sh)
 [![Updated](https://img.shields.io/badge/updated-2025--07--05-blue)](./vault_radar_builder.sh)
 [![Bash](https://img.shields.io/badge/bash-5--2--21-red)](https://www.gnu.org/software/bash/)
 
@@ -17,12 +17,11 @@
 - Read Leaks, Filter by Scenario
 - Parse Languages
 - Pick random count within range
-- Prepare Metadata
+- Template substitution (no sed!)
 - Output Files Map
-- Generate Headers
 - Leak Injection Helpers
-- Leak Reporting for Markdown
-- Main Output Loop (robust, read line by line)
+- Main Output Loop
+- Deduplicate and collect generated languages
 - Add Markdown Table Header
 - Add Footers
 - Write Cleanup Script
@@ -52,6 +51,7 @@
 - RUNID
 - SCENARIO
 - TIMESTAMP
+- TMP_GEN_FILE
 - VERSION
 
 - High-level summary - sanity_check.sh
