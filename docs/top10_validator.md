@@ -1,6 +1,6 @@
-# top10_validator.sh - v2.1.5 - 2025-07-05 05:53:21
+# top10_validator.sh - v2.1.8 - 2025-07-05 05:54:45
 
-[![Version](https://img.shields.io/badge/version-2.1.5-purple.svg)](./top10_validator.sh)
+[![Version](https://img.shields.io/badge/version-2.1.8-purple.svg)](./top10_validator.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/top10_validator.md)
 [![Size](https://img.shields.io/badge/size-13KB-yellow)](./top10_validator.sh)
 [![Updated](https://img.shields.io/badge/updated-2025--07--05-blue)](./top10_validator.sh)
