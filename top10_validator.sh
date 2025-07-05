@@ -75,7 +75,6 @@ Examples:
 EOF
 }
 
-
 # --- Parse command-line arguments ---
 if [[ $# -lt 1 ]]; then
   show_help
