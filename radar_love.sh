@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="0.0.1"
+# shellcheck disable=SC2034
+VERSION="0.0.2"
 echo "$VERSION"
 
 # -------- COLOR & FORMAT DEFINITIONS --------
