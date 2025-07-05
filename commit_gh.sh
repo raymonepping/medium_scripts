@@ -25,13 +25,15 @@ Automates common Git commit and push operations with smart handling:
 
 Options:
   --quiet, -q       Suppress most output (still shows important errors)
-  --tree true|false Generate folder tree (default: false)
+  --tree [true]     Generate folder tree (default: false). If omitted, defaults to true.
   --help, -h        Show this help and exit
 
 Examples:
   ./commit_gh.sh
   ./commit_gh.sh --quiet
+  ./commit_gh.sh --tree         # implicit true
   ./commit_gh.sh --tree true
+  ./commit_gh.sh --tree false
 EOF
       exit 0
       ;;
@@ -39,15 +41,13 @@ EOF
       QUIET=1
       ;;
     --tree)
-      if [[ "${2:-}" == "true" ]]; then
-        GENERATE_TREE=1
-        shift
-      elif [[ "${2:-}" == "false" ]]; then
-        GENERATE_TREE=0
+      # If the next argument is not another flag and exists, check its value
+      if [[ "${2:-}" =~ ^(true|false)$ ]]; then
+        [[ "$2" == "true" ]] && GENERATE_TREE=1
         shift
       else
-        echo "❌ Invalid value for --tree. Use 'true' or 'false'."
-        exit 1
+        # No value given → default to true
+        GENERATE_TREE=1
       fi
       ;;
   esac
