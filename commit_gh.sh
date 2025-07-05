@@ -4,19 +4,15 @@ set -euo pipefail
 # shellcheck disable=SC2034
 VERSION="1.0.4"
 
-GENERATE_TREE=0  # default is false
+QUIET=0
+GENERATE_TREE=0
 
-# Check for --tree flag
-for arg in "$@"; do
-  if [[ "$arg" == "--tree" ]]; then
-    GENERATE_TREE=1
-    break
-  fi
-done
-
-if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
-  cat <<EOF
-Usage: commit_gh [--quiet]
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --help|-h)
+      cat <<EOF
+Usage: commit_gh [--quiet] [--tree true|false]
 
 Automates common Git commit and push operations with smart handling:
 
@@ -28,23 +24,35 @@ Automates common Git commit and push operations with smart handling:
   • Regenerates FOLDER_TREE.md if folder_tree is installed
 
 Options:
-  --quiet, -q   Suppress most output (still shows important errors)
-  --tree         Generate updated folder tree (default: disabled)
-  --help, -h    Show this help and exit
+  --quiet, -q       Suppress most output (still shows important errors)
+  --tree true|false Generate folder tree (default: false)
+  --help, -h        Show this help and exit
 
 Examples:
   ./commit_gh.sh
   ./commit_gh.sh --quiet
-
+  ./commit_gh.sh --tree true
 EOF
-  exit 0
-fi
-
-QUIET=0
-if [[ "${1:-}" == "--quiet" || "${1:-}" == "-q" ]]; then
-  QUIET=1
+      exit 0
+      ;;
+    --quiet|-q)
+      QUIET=1
+      ;;
+    --tree)
+      if [[ "${2:-}" == "true" ]]; then
+        GENERATE_TREE=1
+        shift
+      elif [[ "${2:-}" == "false" ]]; then
+        GENERATE_TREE=0
+        shift
+      else
+        echo "❌ Invalid value for --tree. Use 'true' or 'false'."
+        exit 1
+      fi
+      ;;
+  esac
   shift
-fi
+done
 
 msg() { [[ $QUIET -eq 0 ]] && echo "$*"; }
 always_msg() { echo "$*"; }
