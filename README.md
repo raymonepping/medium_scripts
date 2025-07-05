@@ -1,4 +1,5 @@
 # 🛠️ medium_scripts
+[![Scripts: medium_scripts](https://img.shields.io/badge/scripts-7%20validated-brightgreen?logo=gnu-bash&logoColor=white&label=Shell%20Scripts&style=for-the-badge)](https://github.com/raymonepping/medium_scripts)
 
 A curated toolbox of Bash automation scripts designed to simplify, standardize, and secure your development workflows.
 
