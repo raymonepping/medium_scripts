@@ -1,0 +1,71 @@
+{
+  "leaks": [
+    {
+      "category": "secret",
+      "label": "AWS Access Key",
+      "value": "AWS_ACCESS_KEY_ID=AKIA1234567890FAKE",
+      "languages": ["bash", "python", "docker", "terraform", "node"],
+      "severity": "high",
+      "author": "raymon.epping",
+      "source": "test suite",
+      "demo_notes": "Classic AWS secret pattern",
+      "scenario": "AWS"
+    },
+    {
+      "category": "secret",
+      "label": "GitHub Token",
+      "value": "GITHUB_TOKEN=ghp_1234567890abcdefghijklmnopqrstuvwxyz",
+      "languages": ["bash", "python", "node", "docker"],
+      "severity": "high",
+      "author": "test",
+      "source": "examples",
+      "demo_notes": "GitHub personal access token format",
+      "scenario": "github"
+    },
+    {
+      "category": "pii",
+      "label": "Email",
+      "value": "john.doe@example.com",
+      "languages": ["bash", "python", "node"],
+      "severity": "medium",
+      "author": "test",
+      "source": "public db",
+      "demo_notes": "Sample email leak",
+      "scenario": "PII"
+    },
+    {
+      "category": "pii",
+      "label": "SSN",
+      "value": "123-45-6789",
+      "languages": ["python", "terraform", "bash"],
+      "severity": "high",
+      "author": "test",
+      "source": "fake db",
+      "demo_notes": "US social security number",
+      "scenario": "PII"
+    },
+    {
+      "category": "non_inclusive",
+      "label": "Blacklist",
+      "value": "blacklist",
+      "languages": ["bash", "python", "docker", "terraform", "node"],
+      "severity": "low",
+      "author": "test",
+      "source": "old code",
+      "demo_notes": "Non-inclusive legacy term",
+      "scenario": "inclusivity"
+    },
+    {
+      "category": "non_inclusive",
+      "label": "Master branch",
+      "value": "master branch",
+      "languages": ["bash", "python", "docker", "terraform", "node"],
+      "severity": "low",
+      "author": "test",
+      "source": "legacy vcs",
+      "demo_notes": "Legacy VCS term",
+      "scenario": "inclusivity"
+    }
+  ],
+  "output_size_range": { "min": 5, "max": 10 }
+}

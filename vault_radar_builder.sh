@@ -9,12 +9,12 @@ TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S')"
 RUNID="$(date +%s)-$RANDOM"
 
 # --- Defaults ---
-INPUT="Vault_Radar_input.json"
+INPUT="vault_radar_input.json"
 OUTDIR="radar_demo"
 LANGS_TO_GEN="all"
 SCENARIO=""
-HEADER_TEMPLATE="templates/header.tpl"
-FOOTER_TEMPLATE="templates/footer.tpl"
+HEADER_TEMPLATE="header.tpl"
+FOOTER_TEMPLATE="footer.tpl"
 LOGFILE="$OUTDIR/Vault_Radar_build.log"
 CLEANUP_SCRIPT="$OUTDIR/Vault_Radar_cleanup.sh"
 LINT=0
@@ -94,6 +94,41 @@ COUNT=$(( RANDOM % (MAX - MIN + 1) + MIN ))
 LEAKS_TO_USE=$(echo "$LEAKS" | shuf | head -n "$COUNT")
 [[ -z "$LEAKS_TO_USE" ]] && die "No leaks selected for chosen filters."
 
+# --- Shebang + VERSION injector (only for bash/python/node/etc) ---
+inject_shebang_and_version() {
+  local file="$1"
+  local lang="$2"
+  local ver="${3:-0.0.1}"
+  case "$lang" in
+    bash)
+      # Only insert if not already present (after header)
+      if ! grep -q '^#!/usr/bin/env bash' "$file"; then
+        awk -v ver="$ver" '
+          NR==1 { print; print "#!/usr/bin/env bash\n# shellcheck disable=SC2034\nVERSION=\""ver"\""; next }
+          { print }
+        ' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+      fi
+      ;;
+    python)
+      if ! grep -q '^#!/usr/bin/env python3' "$file"; then
+        awk -v ver="$ver" '
+          NR==1 { print; print "#!/usr/bin/env python3\nVERSION = \""ver"\""; next }
+          { print }
+        ' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+      fi
+      ;;
+    node)
+      if ! grep -q '^// Node.js leak demo' "$file"; then
+        awk -v ver="$ver" '
+          NR==1 { print; print "// VERSION: "ver; next }
+          { print }
+        ' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+      fi
+      ;;
+    # Add more languages if you wish
+  esac
+}
+
 # --- Template substitution (no sed!) ---
 template_subst() {
   local tpl
@@ -167,26 +202,10 @@ echo "$LEAKS_TO_USE" | while IFS= read -r leak; do
   for lang in "${!OUTFILES[@]}"; do
     if should_generate "$lang" && grep -qw "$lang" <<<"$LANGS"; then
       echo "$lang" >> "${TMP_GEN_FILE}"
-      # Only write header once per language
+      # Only write header and shebang/version once per language
       if [[ ${HEADER_DONE[$lang]:-0} -eq 0 ]]; then
         template_subst "$HEADER_TEMPLATE" > "${OUTFILES[$lang]}"
-        # ---- Add language-specific intro just after header ----
-        if [[ "$lang" == "bash" ]]; then
-          awk -v ver="$VERSION" '
-            NR==1 { print; print "#!/usr/bin/env bash\n# shellcheck disable=SC2034\nVERSION=\""ver"\""; next }
-            { print }
-          ' "${OUTFILES[$lang]}" > "${OUTFILES[$lang]}.tmp" && mv "${OUTFILES[$lang]}.tmp" "${OUTFILES[$lang]}"
-        elif [[ "$lang" == "python" ]]; then
-          awk -v ver="$VERSION" '
-            NR==1 { print; print "#!/usr/bin/env python3\n# VERSION: "ver; next }
-            { print }
-          ' "${OUTFILES[$lang]}" > "${OUTFILES[$lang]}.tmp" && mv "${OUTFILES[$lang]}.tmp" "${OUTFILES[$lang]}"
-        elif [[ "$lang" == "node" ]]; then
-          awk -v ver="$VERSION" '
-            NR==1 { print; print "// VERSION: "ver; next }
-            { print }
-          ' "${OUTFILES[$lang]}" > "${OUTFILES[$lang]}.tmp" && mv "${OUTFILES[$lang]}.tmp" "${OUTFILES[$lang]}"
-        fi
+        inject_shebang_and_version "${OUTFILES[$lang]}" "$lang" "$VERSION"
         HEADER_DONE[$lang]=1
       fi
       case "$lang" in
