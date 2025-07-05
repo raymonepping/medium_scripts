@@ -4,7 +4,7 @@
 # --- top10_validator.sh: Check a script against our Bash Top 10 (Color + Markdown) ---
 
 # shellcheck disable=SC2034
-VERSION="2.1.2"
+VERSION="2.1.5"
 
 # --- Enable strict mode for safety and fail-fast behavior ---
 set -euo pipefail
@@ -138,7 +138,7 @@ done
 [[ ! -f "$SCRIPT" ]] && echo "❌ File not found: $SCRIPT" && exit 1
 
 # --- Initialize LEVELs to 'bad' ---
-for ((i = 0; i <= 10; i++)); do LEVEL[$i]="bad"; done
+for ((i = 0; i <= 10; i++)); do LEVEL[i]="bad"; done
 
 # --- Disable strict mode for grep/parsing sections ---
 disable_strict_mode
@@ -324,7 +324,13 @@ assess_risk() {
     RISK_TEXT="🔴 Needs review"
   fi
 }
-assess_risk
+
+# --- function for asses risk ---
+main() {
+  assess_risk
+}
+
+main
 
 # --- Final Score Calculation ---
 total_points=0

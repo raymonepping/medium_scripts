@@ -211,4 +211,20 @@ if [[ "$WRITE_CHANGELOG" == "1" ]]; then
   echo -e "${CYAN}📝 CHANGELOG updated: ${CHANGELOG}${RESET}"
 fi
 
+# --- Replace VERSION in script safely and preserve +x permissions ---
+TMPFILE="$(dirname "$SCRIPT_PATH")/.bump_tmp_$$"
+
+# Preserve current execute permission (optional, mostly for clarity)
+was_executable=0
+[[ -x "$SCRIPT_PATH" ]] && was_executable=1
+
+# Replace the version
+awk -v v="VERSION=\"${new_version}\"" '
+  c==0 && /^[[:space:]]*VERSION="[0-9]+\.[0-9]+\.[0-9]+"/ { print v; c=1; next }
+  { print }
+' "$SCRIPT_PATH" >"$TMPFILE" && mv "$TMPFILE" "$SCRIPT_PATH"
+
+# 🛠 Always restore executable bit to avoid permission errors
+chmod +x "$SCRIPT_PATH"
+
 echo -e "${GREEN}✅ ${SCRIPT_PATH} bumped: ${current_version} → ${new_version}${RESET}"
