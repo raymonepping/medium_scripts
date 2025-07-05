@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # shellcheck disable=SC2034
-VERSION="0.0.2"
+VERSION="0.0.3"
 echo "$VERSION"
 
-# -------- COLOR & FORMAT DEFINITIONS --------
+# --- COLOR & FORMAT DEFINITIONS ---
 color_reset=$'\e[0m'
 color_red=$'\e[31m'
 color_green=$'\e[32m'
@@ -18,7 +18,7 @@ color_status=$'\e[37m'
 shake_on=$'\e[5m'
 shake_off=$'\e[25m'
 
-# -------- EMOJI --------
+# --- EMOJI ---
 icon_ok="☁️"
 icon_err="❌"
 icon_warn="⚠️"
@@ -32,7 +32,7 @@ icon_pr="🔀"
 icon_step="➡️"
 icon_done="🏁"
 
-# -------- CONFIGURATION --------
+# --- CONFIGURATION ---
 REPO_NAME="medium_live_forever"
 GH_USER="$(gh api user --jq .login)"
 DIR="$(pwd)"
@@ -53,7 +53,7 @@ check_github_auth() {
   fi
 }
 
-# -------- Input file locations --------
+# --- Input file locations ---
 SCRIPTS_FOLDER="$HOME/Documents/VSC/MacOS_Environment/medium_scripts/radar_demo"
 FILE_BUILDER="vault_radar_builder.sh"
 FILE_INPUT="vault_radar_input.json"
@@ -61,7 +61,7 @@ FILE_HEADER="header.tpl"
 FILE_FOOTER="footer.tpl"
 GITIGNORE_SOURCES=("$SCRIPTS_FOLDER/.gitignore" "$HOME/.gitignore_global")
 
-# -------- Logging / Output --------
+# --- Logging / Output ---
 log() { echo "${color_status}${icon_step} $*${color_reset}"; }
 ok() { echo "${color_bold}${color_green}${icon_ok} $*${color_reset}"; }
 warn() { echo "${color_bold}${color_yellow}${icon_warn} $*${color_reset}"; }
@@ -71,7 +71,7 @@ fail() {
 }
 banner() { echo -e "\n${color_cyan}${color_bold}==== $* ====${color_reset}"; }
 
-# -------- Progress Bar --------
+# --- Progress Bar ---
 progress() {
   local pct="$1"
   local bar=""
@@ -83,7 +83,7 @@ progress() {
   if [ "$pct" -eq 100 ]; then echo; fi
 }
 
-# -------- Early --help/--version --------
+# --- Early --help/--version ---
 for arg in "$@"; do
   case "$arg" in
   --help)
@@ -115,7 +115,7 @@ EOF
   esac
 done
 
-# -------- Parse Flags --------
+# --- Parse Flags ---
 while [[ $# -gt 0 ]]; do
   case "$1" in
   --create)
@@ -150,17 +150,17 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# -------- Clean Existing Project Folder If Needed --------
+# --- Clean Existing Project Folder If Needed ---
 if [[ "$FRESH" == "true" && -d "$PROJECT_FOLDER" ]]; then
   warn "✗ The folder '$PROJECT_FOLDER' already exists."
   rm -rf "$PROJECT_FOLDER"
   ok "Removed $PROJECT_FOLDER. Starting fresh."
 fi
 
-# -------- Ensure Project Folder Exists --------
+# --- Ensure Project Folder Exists ---
 mkdir -p "$PROJECT_FOLDER"
 
-# -------- Copy .gitignore --------
+# --- Copy .gitignore ---
 copy_gitignore() {
   for src in "${GITIGNORE_SOURCES[@]}"; do
     if [[ -f "$src" ]]; then
@@ -173,7 +173,7 @@ copy_gitignore() {
   warn "No .gitignore template found, created a default."
 }
 
-# -------- Copy Input Files --------
+# --- Copy Input Files ---
 copy_inputs() {
   banner "${icon_copy} Copying input files..."
   for file in "$FILE_BUILDER" "$FILE_INPUT" "$FILE_HEADER" "$FILE_FOOTER"; do
@@ -225,7 +225,7 @@ copy_docs_and_license() {
   done
 }
 
-# -------- Pre-commit hook for sanity_check --------
+# --- Pre-commit hook for sanity_check ---
 setup_precommit_hook() {
   local HOOK_PATH="$PROJECT_FOLDER/.git/hooks/pre-commit"
   if command -v sanity_check &>/dev/null; then
@@ -313,7 +313,7 @@ build_leaky_branch() {
   cd - >/dev/null
 }
 
-# -------- Version bump (multi-lang aware) --------
+# --- Version bump (multi-lang aware) ---
 run_bump_version() {
   cd "$PROJECT_FOLDER"
   # Check for all generated radar_demo trigger files (.sh, .py, etc)
@@ -388,7 +388,7 @@ trigger_pr_and_scan() {
   cd - >/dev/null
 }
 
-# -------- MAIN --------
+# --- MAIN ---
 banner "${icon_push}${icon_ok}${icon_branch} $REPO_NAME: Cloudy Modular Secret Demo Pipeline!"
 
 progress 5
