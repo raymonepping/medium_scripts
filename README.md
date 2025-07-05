@@ -22,74 +22,59 @@ A curated toolbox of Bash automation scripts designed to simplify, standardize, 
 
 ---
 
-## ⚡ Quickstart: Plug-and-Play in Your Repo
+🛠️ Sample Usage
 
-1. **Add Scripts**  
-   Copy `*.sh` files into your project root or `/scripts`.
+./bump_version.sh ./sanity_check.sh --minor
+./commit_gh.sh --quiet --tree true
+./generate_documentation.sh --summary --depth 2 ./sanity_check.sh
+./sanity_check.sh --all ./top10_validator.sh
+./top10_validator.sh ./commit_gh.sh
+./folder_tree.sh --output broot
+./trigger_git_scan.sh --badges
 
-2. **Add Workflows**  
-   Place GitHub Actions YAMLs in `.github/workflows` (see below).
+📦 Integrate in CI
+Sample GitHub Actions workflow:
 
-3. **Set Permissions**  
-   ```bash
-   chmod +x *.sh
-Run Locally or in CI
-Use the CLI or automate via CI for PRs or merges.
-
-📦 Sample GitHub Workflow
 yaml
 
 # .github/workflows/sanity-check.yml
 name: Sanity Check
 
-on:
-  pull_request:
-    paths:
-      - '**.sh'
+on: [pull_request]
 
 jobs:
-  bash-lint:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: ./sanity_check.sh --all .
-🧪 Script Badges (optional)
-You can add version and status badges for each tool like:
+🧪 Tooling Required
 
-markdown
-Kopiëren
-Bewerken
-![Version](https://img.shields.io/badge/commit_gh-v1.0.4-blue)
-![Sanity](https://img.shields.io/badge/sanity_check-passed-brightgreen)
-📖 Learn More
-Each script is documented inline via --help.
-You can also explore the detailed Medium articles for deep dives:
+These scripts rely on:
+bash, awk, sed, grep
 
-🔗 The Bash Top 10 Chronicles
+shellcheck, shfmt, prettier, black, pylint, eslint, etc.
 
-🔗 Streamlining Project Creation with Packer and Automation
+Optional: broot (for folder trees)
 
-🧰 Requirements
-Most scripts assume:
+Use:
 
 bash
+./sanity_check.sh --report
+...to check tool availability.
 
-awk, sed, shfmt, shellcheck
+🧠 Learn More
 
-Optional: prettier, black, eslint, pylint, etc.
+📚 Related Medium articles:
+- 🧩 The Bash Top 10 Chronicles
+- 🚀 Real-Time Bash Automation & Living Docs
+- 🔧 Automating Project Setup with Packer
 
-Use sanity_check.sh --report to validate your tooling setup.
+🧰 Optional: Version Badges
 
-🔐 Security & Hygiene by Default
-All scripts follow:
-
-set -euo pipefail for safety
-
-Strict quoting and variable checks
-
-ShellCheck-verified structure
-
-Optional commit hygiene via commit_gh.sh
+![Commit GH](https://img.shields.io/badge/commit_gh-v1.0.4-blue)
+![Sanity Check](https://img.shields.io/badge/sanity_check-pass-brightgreen)
+![Top10](https://img.shields.io/badge/top10_validator-2.1.4-yellow)
 
 🧠 Idea? Bug? Improvement?
 Open an issue or PR. We believe in continuous improvement — and beautiful automation.
