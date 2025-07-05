@@ -1,4 +1,3 @@
-## 🚀 Included Scripts
 # 🧩 medium_scripts
 
 A curated toolbox of Bash automation scripts designed to simplify, standardize, and secure your development workflows.
