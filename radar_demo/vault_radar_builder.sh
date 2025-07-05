@@ -41,38 +41,84 @@ EOF
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --output-path) OUTDIR="$2"; shift 2 ;;
-    --languages) LANGS_TO_GEN="$2"; shift 2 ;;
-    --language) LANGS_TO_GEN="$2"; shift 2 ;;
-    --scenario) SCENARIO="$2"; shift 2 ;;
-    --header-template) HEADER_TEMPLATE="$2"; shift 2 ;;
-    --footer-template) FOOTER_TEMPLATE="$2"; shift 2 ;;
-    --lint) LINT=1; shift ;;
-    --dry-run) DRYRUN=1; shift ;;
-    --quiet) QUIET=1; shift ;;
-    --help) usage; exit 0 ;;
-    --version) echo "$VERSION"; exit 0 ;;
-    *) echo "Unknown option: $1"; usage; exit 1 ;;
+  --output-path)
+    OUTDIR="$2"
+    shift 2
+    ;;
+  --languages)
+    LANGS_TO_GEN="$2"
+    shift 2
+    ;;
+  --language)
+    LANGS_TO_GEN="$2"
+    shift 2
+    ;;
+  --scenario)
+    SCENARIO="$2"
+    shift 2
+    ;;
+  --header-template)
+    HEADER_TEMPLATE="$2"
+    shift 2
+    ;;
+  --footer-template)
+    FOOTER_TEMPLATE="$2"
+    shift 2
+    ;;
+  --lint)
+    LINT=1
+    shift
+    ;;
+  --dry-run)
+    DRYRUN=1
+    shift
+    ;;
+  --quiet)
+    QUIET=1
+    shift
+    ;;
+  --help)
+    usage
+    exit 0
+    ;;
+  --version)
+    echo "$VERSION"
+    exit 0
+    ;;
+  *)
+    echo "Unknown option: $1"
+    usage
+    exit 1
+    ;;
   esac
 done
 
 # --- Input Validation ---
-die() { echo "❌ $1" >&2; exit 1; }
+die() {
+  echo "❌ $1" >&2
+  exit 1
+}
 [[ ! -f "$INPUT" ]] && die "Input file $INPUT not found."
 command -v jq >/dev/null || die "'jq' is required."
 
 mkdir -p "$OUTDIR"
 
-log() { [[ $QUIET -eq 0 ]] && echo -e "$@"; echo -e "$@" >> "$LOGFILE"; }
+log() {
+  [[ $QUIET -eq 0 ]] && echo -e "$@"
+  echo -e "$@" >>"$LOGFILE"
+}
 
 # --- Read Leaks, Filter by Scenario ---
-LEAKS=$(jq -c '.leaks[]' "$INPUT")
-[[ -n "$SCENARIO" ]] && LEAKS=$(echo "$LEAKS" | grep "\"scenario\":\"$SCENARIO\"")
+if [[ -n "$SCENARIO" ]]; then
+  LEAKS=$(jq -c --arg scenario "$SCENARIO" '.leaks[] | select(.scenario == $scenario)' "$INPUT")
+else
+  LEAKS=$(jq -c '.leaks[]' "$INPUT")
+fi
 
 [[ -z "$LEAKS" ]] && die "No leaks found for scenario '$SCENARIO'."
 
 # --- Parse Languages ---
-IFS=',' read -r -a LANG_ARRAY <<< "$LANGS_TO_GEN"
+IFS=',' read -r -a LANG_ARRAY <<<"$LANGS_TO_GEN"
 should_generate() {
   local lang="$1"
   [[ "${LANGS_TO_GEN}" == "all" ]] && return 0
@@ -85,7 +131,7 @@ should_generate() {
 # --- Pick random count within range ---
 MIN=$(jq '.output_size_range.min' "$INPUT")
 MAX=$(jq '.output_size_range.max' "$INPUT")
-COUNT=$(( RANDOM % (MAX - MIN + 1) + MIN ))
+COUNT=$((RANDOM % (MAX - MIN + 1) + MIN))
 LEAKS_TO_USE=$(echo "$LEAKS" | shuf | head -n "$COUNT")
 
 # --- Prepare Metadata ---
@@ -110,17 +156,17 @@ declare -A OUTFILES=(
 )
 
 for lang in "${!OUTFILES[@]}"; do
-  [[ $DRYRUN -eq 0 ]] && > "${OUTFILES[$lang]}"
+  [[ $DRYRUN -eq 0 ]] && >"${OUTFILES[$lang]}"
 done
 
 # --- Generate Headers ---
 for lang in "${!OUTFILES[@]}"; do
   if should_generate "$lang"; then
     if [[ $DRYRUN -eq 0 ]]; then
-      template_subst "$HEADER_TEMPLATE" > "${OUTFILES[$lang]}"
-      [[ "$lang" == "bash" ]] && echo "#!/bin/bash" >> "${OUTFILES[$lang]}"
-      [[ "$lang" == "python" ]] && echo "# Python leak demo" >> "${OUTFILES[$lang]}"
-      [[ "$lang" == "node" ]] && echo "// Node.js leak demo" >> "${OUTFILES[$lang]}"
+      template_subst "$HEADER_TEMPLATE" >"${OUTFILES[$lang]}"
+      [[ "$lang" == "bash" ]] && echo "#!/bin/bash" >>"${OUTFILES[$lang]}"
+      [[ "$lang" == "python" ]] && echo "# Python leak demo" >>"${OUTFILES[$lang]}"
+      [[ "$lang" == "node" ]] && echo "// Node.js leak demo" >>"${OUTFILES[$lang]}"
     fi
   fi
 done
@@ -173,14 +219,14 @@ for leak in $LEAKS_TO_USE; do
     if should_generate "$lang" && grep -qw "$lang" <<<"$LANGS"; then
       generated[$lang]=1
       case "$lang" in
-        bash)     [[ $DRYRUN -eq 0 ]] && inject_bash "$leak" >> "${OUTFILES[$lang]}";;
-        python)   [[ $DRYRUN -eq 0 ]] && inject_python "$leak" >> "${OUTFILES[$lang]}";;
-        node)     [[ $DRYRUN -eq 0 ]] && inject_node "$leak" >> "${OUTFILES[$lang]}";;
-        docker)   [[ $DRYRUN -eq 0 ]] && inject_docker "$leak" >> "${OUTFILES[$lang]}";;
-        terraform)[[ $DRYRUN -eq 0 ]] && inject_terraform "$leak" >> "${OUTFILES[$lang]}";;
-        md)       [[ $DRYRUN -eq 0 ]] && inject_md "$leak" >> "${OUTFILES[$lang]}";;
+      bash) [[ $DRYRUN -eq 0 ]] && inject_bash "$leak" >>"${OUTFILES[$lang]}" ;;
+      python) [[ $DRYRUN -eq 0 ]] && inject_python "$leak" >>"${OUTFILES[$lang]}" ;;
+      node) [[ $DRYRUN -eq 0 ]] && inject_node "$leak" >>"${OUTFILES[$lang]}" ;;
+      docker) [[ $DRYRUN -eq 0 ]] && inject_docker "$leak" >>"${OUTFILES[$lang]}" ;;
+      terraform) [[ $DRYRUN -eq 0 ]] && inject_terraform "$leak" >>"${OUTFILES[$lang]}" ;;
+      md) [[ $DRYRUN -eq 0 ]] && inject_md "$leak" >>"${OUTFILES[$lang]}" ;;
       esac
-      [[ $DRYRUN -eq 0 ]] && echo "" >> "${OUTFILES[$lang]}"
+      [[ $DRYRUN -eq 0 ]] && echo "" >>"${OUTFILES[$lang]}"
     fi
   done
 done
@@ -197,13 +243,13 @@ fi
 # --- Add Footers ---
 for lang in "${!OUTFILES[@]}"; do
   if should_generate "$lang" && [[ $DRYRUN -eq 0 ]]; then
-    template_subst "$FOOTER_TEMPLATE" >> "${OUTFILES[$lang]}"
+    template_subst "$FOOTER_TEMPLATE" >>"${OUTFILES[$lang]}"
   fi
 done
 
 # --- Write Cleanup Script ---
 if [[ $DRYRUN -eq 0 ]]; then
-  cat <<EOC > "$CLEANUP_SCRIPT"
+  cat <<EOC >"$CLEANUP_SCRIPT"
 #!/bin/bash
 echo "Cleaning up all Vault Radar demo outputs in: $OUTDIR"
 rm -f ${OUTFILES[@]}
@@ -217,7 +263,7 @@ fi
 if [[ $LINT -eq 1 && $DRYRUN -eq 0 ]]; then
   if [[ -f "sanity_check.sh" ]]; then
     log "Running sanity_check.sh on outputs..."
-    ./sanity_check.sh "$OUTDIR" > "$OUTDIR/sanity_check_report.md"
+    ./sanity_check.sh "$OUTDIR" >"$OUTDIR/sanity_check_report.md"
     log "Sanity check output: $OUTDIR/sanity_check_report.md"
   else
     log "sanity_check.sh not found, skipping lint."
