@@ -97,31 +97,40 @@ for arg in "$@"; do
     continue
   fi
   case "$arg" in
-    -h|--help) show_help; exit 0 ;;
-    --version) echo "top10_validator.sh version: $VERSION"; exit 0 ;;
-    --md|--markdown) MD_OUT=true ;;
-    --output) expecting_output_arg=true ;;
-    --output=md|--output=markdown) MD_OUT=true ;;
-    --output=*) val="${arg#*=}"; [[ "$val" == "md" || "$val" == "markdown" ]] && MD_OUT=true ;;
-    --quiet-header) QUIET_HEADER=true ;;
-    --no-footer) SHOW_FOOTER=false ;;
-    --footer) SHOW_FOOTER=true ;;
-    --footer=*)
-      val="${arg#*=}"
-      [[ "$val" == "false" ]] && SHOW_FOOTER=false
-      [[ "$val" == "true" ]] && SHOW_FOOTER=true
-      ;;    
-    --show-header) QUIET_HEADER=false ;;
-    --hide-script-name) HIDE_SCRIPT_NAME=true ;;
-    --show-script-name) HIDE_SCRIPT_NAME=false ;;
-    -*)
-      echo "❌ Unknown option: $arg"
-      show_help
-      exit 1
-      ;;
-    *)
-      [[ -z "$SCRIPT" ]] && SCRIPT="$arg"
-      ;;
+  -h | --help)
+    show_help
+    exit 0
+    ;;
+  --version)
+    echo "top10_validator.sh version: $VERSION"
+    exit 0
+    ;;
+  --md | --markdown) MD_OUT=true ;;
+  --output) expecting_output_arg=true ;;
+  --output=md | --output=markdown) MD_OUT=true ;;
+  --output=*)
+    val="${arg#*=}"
+    [[ "$val" == "md" || "$val" == "markdown" ]] && MD_OUT=true
+    ;;
+  --quiet-header) QUIET_HEADER=true ;;
+  --no-footer) SHOW_FOOTER=false ;;
+  --footer) SHOW_FOOTER=true ;;
+  --footer=*)
+    val="${arg#*=}"
+    [[ "$val" == "false" ]] && SHOW_FOOTER=false
+    [[ "$val" == "true" ]] && SHOW_FOOTER=true
+    ;;
+  --show-header) QUIET_HEADER=false ;;
+  --hide-script-name) HIDE_SCRIPT_NAME=true ;;
+  --show-script-name) HIDE_SCRIPT_NAME=false ;;
+  -*)
+    echo "❌ Unknown option: $arg"
+    show_help
+    exit 1
+    ;;
+  *)
+    [[ -z "$SCRIPT" ]] && SCRIPT="$arg"
+    ;;
   esac
 done
 
@@ -129,7 +138,7 @@ done
 [[ ! -f "$SCRIPT" ]] && echo "❌ File not found: $SCRIPT" && exit 1
 
 # --- Initialize LEVELs to 'bad' ---
-for ((i=0; i<=10; i++)); do LEVEL[$i]="bad"; done
+for ((i = 0; i <= 10; i++)); do LEVEL[$i]="bad"; done
 
 # --- Disable strict mode for grep/parsing sections ---
 disable_strict_mode
@@ -137,56 +146,69 @@ disable_strict_mode
 # --- Run checks 10 to 0 ---
 # 10
 if head -n1 "$SCRIPT" | grep -q '/usr/bin/env bash'; then
-  STATUS[10]="${color_green}${CHECK} - [B03] -${color_reset}"; LEVEL[10]="best"
+  STATUS[10]="${color_green}${CHECK} - [B03] -${color_reset}"
+  LEVEL[10]="best"
 elif head -n1 "$SCRIPT" | grep -q '^#!'; then
-  STATUS[10]="${color_yellow}${WARN} - [B02] -${color_reset}"; LEVEL[10]="better"
+  STATUS[10]="${color_yellow}${WARN} - [B02] -${color_reset}"
+  LEVEL[10]="better"
 else
   STATUS[10]="${color_red}${CROSS} - [B01] -${color_reset}"
 fi
 
 # 9
 if grep -qE '(-h|--help)' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[9]="${color_green}${CHECK} - [B03] -${color_reset}"; LEVEL[9]="best"
+  STATUS[9]="${color_green}${CHECK} - [B03] -${color_reset}"
+  LEVEL[9]="best"
 elif grep -qi 'usage' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[9]="${color_yellow}${WARN} - [B02] -${color_reset}"; LEVEL[9]="better"
+  STATUS[9]="${color_yellow}${WARN} - [B02] -${color_reset}"
+  LEVEL[9]="better"
 else
   STATUS[9]="${color_red}${CROSS} - [B01] -${color_reset}"
 fi
 
 # 8
 if grep -q '\[\[' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[8]="${color_green}${CHECK} - [B03] -${color_reset}"; LEVEL[8]="best"
+  STATUS[8]="${color_green}${CHECK} - [B03] -${color_reset}"
+  LEVEL[8]="best"
 elif grep -q '\[ ' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[8]="${color_yellow}${WARN} - [B02] -${color_reset}"; LEVEL[8]="better"
+  STATUS[8]="${color_yellow}${WARN} - [B02] -${color_reset}"
+  LEVEL[8]="better"
 else
   STATUS[8]="${color_red}${CROSS} - [B01] -${color_reset}"
 fi
 
 # 7
 if grep -q 'local ' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[7]="${color_green}${CHECK} - [B03] -${color_reset}"; LEVEL[7]="best"
+  STATUS[7]="${color_green}${CHECK} - [B03] -${color_reset}"
+  LEVEL[7]="best"
 elif grep -q '()' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[7]="${color_yellow}${WARN} - [B02] -${color_reset}"; LEVEL[7]="better"
+  STATUS[7]="${color_yellow}${WARN} - [B02] -${color_reset}"
+  LEVEL[7]="better"
 else
   STATUS[7]="${color_red}${CROSS} - [B01] -${color_reset}"
 fi
 
 # 6
 if grep -Eq '# shellcheck disable=.*#' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[6]="${color_green}${CHECK} - [B03] -${color_reset}"; LEVEL[6]="best"
+  STATUS[6]="${color_green}${CHECK} - [B03] -${color_reset}"
+  LEVEL[6]="best"
 elif grep -q 'shellcheck disable' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[6]="${color_yellow}${WARN} - [B02] -${color_reset}"; LEVEL[6]="better"
+  STATUS[6]="${color_yellow}${WARN} - [B02] -${color_reset}"
+  LEVEL[6]="better"
 elif grep -q 'shellcheck' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[6]="${color_green}${CHECK} - [B03] -${color_reset}"; LEVEL[6]="best"
+  STATUS[6]="${color_green}${CHECK} - [B03] -${color_reset}"
+  LEVEL[6]="best"
 else
   STATUS[6]="${color_red}${CROSS} - [B01] -${color_reset}"
 fi
 
 # 5
 if grep -qE '\"\$[a-zA-Z0-9_]+\"' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[5]="${color_green}${CHECK} - [B03] -${color_reset}"; LEVEL[5]="best"
+  STATUS[5]="${color_green}${CHECK} - [B03] -${color_reset}"
+  LEVEL[5]="best"
 elif grep -qE '\$[a-zA-Z0-9_]+\b' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[5]="${color_yellow}${WARN} - [B02] -${color_reset}"; LEVEL[5]="better"
+  STATUS[5]="${color_yellow}${WARN} - [B02] -${color_reset}"
+  LEVEL[5]="better"
 else
   STATUS[5]="${color_red}${CROSS} - [B01] -${color_reset}"
 fi
@@ -195,43 +217,53 @@ fi
 if grep -E '^[^#"\047]*\bls\b[[:space:]]' "$SCRIPT" >/dev/null 2>&1; then
   STATUS[4]="${color_red}${CROSS} - [B01] -${color_reset}"
 elif grep -q 'find ' "$SCRIPT" >/dev/null 2>&1 || grep -qE '\*\.[a-zA-Z0-9]+' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[4]="${color_green}${CHECK} - [B03] -${color_reset}"; LEVEL[4]="best"
+  STATUS[4]="${color_green}${CHECK} - [B03] -${color_reset}"
+  LEVEL[4]="best"
 else
-  STATUS[4]="${color_yellow}${WARN} - [B02] -${color_reset}"; LEVEL[4]="better"
+  STATUS[4]="${color_yellow}${WARN} - [B02] -${color_reset}"
+  LEVEL[4]="better"
 fi
 
 # 3
 if grep -q 'set -euo pipefail' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[3]="${color_green}${CHECK} - [B03] -${color_reset}"; LEVEL[3]="best"
+  STATUS[3]="${color_green}${CHECK} - [B03] -${color_reset}"
+  LEVEL[3]="best"
 elif grep -q 'set -e' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[3]="${color_yellow}${WARN} - [B02] -${color_reset}"; LEVEL[3]="better"
+  STATUS[3]="${color_yellow}${WARN} - [B02] -${color_reset}"
+  LEVEL[3]="better"
 else
   STATUS[3]="${color_red}${CROSS} - [B01] -${color_reset}"
 fi
 
 # 2
 if grep -q 'exit 1' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[2]="${color_green}${CHECK} - [B03] -${color_reset}"; LEVEL[2]="best"
+  STATUS[2]="${color_green}${CHECK} - [B03] -${color_reset}"
+  LEVEL[2]="best"
 elif grep -q 'exit 0' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[2]="${color_yellow}${WARN} - [B02] -${color_reset}"; LEVEL[2]="better"
+  STATUS[2]="${color_yellow}${WARN} - [B02] -${color_reset}"
+  LEVEL[2]="better"
 else
   STATUS[2]="${color_red}${CROSS} - [B01] -${color_reset}"
 fi
 
 # 1
 if grep -q 'awk ' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[1]="${color_green}${CHECK} - [B03] -${color_reset}"; LEVEL[1]="best"
+  STATUS[1]="${color_green}${CHECK} - [B03] -${color_reset}"
+  LEVEL[1]="best"
 elif grep -q 'sed ' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[1]="${color_yellow}${WARN} - [B02] -${color_reset}"; LEVEL[1]="better"
+  STATUS[1]="${color_yellow}${WARN} - [B02] -${color_reset}"
+  LEVEL[1]="better"
 else
   STATUS[1]="${color_red}${CROSS} - [B01] -${color_reset}"
 fi
 
 # 0 BONUS
 if grep -qE '^VERSION="' "$SCRIPT" >/dev/null 2>&1; then
-  STATUS[0]="${color_green}${STAR} - [B00] -${color_reset}"; LEVEL[0]="bonus"
+  STATUS[0]="${color_green}${STAR} - [B00] -${color_reset}"
+  LEVEL[0]="bonus"
 else
-  STATUS[0]="${color_red}${CROSS} - [B01] -${color_reset}"; LEVEL[0]="bad"
+  STATUS[0]="${color_red}${CROSS} - [B01] -${color_reset}"
+  LEVEL[0]="bad"
 fi
 
 # --- Output Results ---
@@ -245,7 +277,8 @@ if [[ "$QUIET_HEADER" != true ]]; then
 fi
 
 # ---
-output_block+=$(cat <<EOF
+output_block+=$(
+  cat <<EOF
 10 ${STATUS[10]} ${RULES[10]}
  9 ${STATUS[9]} ${RULES[9]}
  8 ${STATUS[8]} ${RULES[8]}
@@ -264,25 +297,28 @@ EOF
 )
 
 # --- Count levels, if it’s a failed bonus, counts as a violation
-best=0; warn=0; bad=0; bonus=0
-for ((i=10; i>=1; i--)); do
+best=0
+warn=0
+bad=0
+bonus=0
+for ((i = 10; i >= 1; i--)); do
   case "${LEVEL[$i]}" in
-    best)   ((best++)) ;;
-    better) ((warn++)) ;;
-    bad)    ((bad++)) ;;
+  best) ((best++)) ;;
+  better) ((warn++)) ;;
+  bad) ((bad++)) ;;
   esac
 done
 if [[ "${LEVEL[0]:-}" == "bonus" ]]; then
   bonus=1
 else
-  ((bad++)) 
+  ((bad++))
 fi
 
 # --- Assess risk
 assess_risk() {
-  if (( bad == 0 && warn <= 2 )); then
+  if ((bad == 0 && warn <= 2)); then
     RISK_TEXT="✅ Excellent"
-  elif (( bad == 0 && warn <= 4 )); then
+  elif ((bad == 0 && warn <= 4)); then
     RISK_TEXT="🟡 Fair"
   else
     RISK_TEXT="🔴 Needs review"
@@ -292,11 +328,11 @@ assess_risk
 
 # --- Final Score Calculation ---
 total_points=0
-for ((i=10; i>=1; i--)); do
+for ((i = 10; i >= 1; i--)); do
   case "${LEVEL[$i]}" in
-    best)   ((total_points+=10)) ;;
-    better) ((total_points+=5)) ;;
-    bad)    ((total_points+=0)) ;;
+  best) ((total_points += 10)) ;;
+  better) ((total_points += 5)) ;;
+  bad) ((total_points += 0)) ;;
   esac
 done
 
@@ -309,14 +345,14 @@ if [[ "${LEVEL[0]:-}" == "bonus" ]]; then
 else
   bonus=0
   bonus_text="❌"
-  ((bad++))  
+  ((bad++))
 fi
 
 score_line="🎯 Final Score: $score/10 (Bonus: $bonus_text)"
 
-
 # --- Build Summary Block ---
-summary_block=$(cat <<EOF
+summary_block=$(
+  cat <<EOF
 Best: $best   Warn: $warn   Bad: $bad   Bonus: $bonus
 
 Level  Count     Description
@@ -353,7 +389,7 @@ if [[ "$MD_OUT" == true ]]; then
     echo ""
     echo "$output_block"
     echo "$summary_block"
-  } | sed 's/\x1b\[[0-9;]*m//g' > "$md_file"
+  } | sed 's/\x1b\[[0-9;]*m//g' >"$md_file"
 
   # --- Optional Git metadata for footer ---
   author_info=""
@@ -374,19 +410,22 @@ if [[ "$MD_OUT" == true ]]; then
   fi
 
   if [[ -n "$author_info" ]]; then
-    echo -e "\n---\n_${author_info}_\n" >> "$md_file"
+    echo -e "\n---\n_${author_info}_\n" >>"$md_file"
   fi
 
   echo -e "\n📄 Markdown file written: $md_file"
 fi
 
 # --- Count results ---
-best=0; warn=0; bad=0; bonus=0
-for ((i=10; i>=1; i--)); do
+best=0
+warn=0
+bad=0
+bonus=0
+for ((i = 10; i >= 1; i--)); do
   case "${LEVEL[$i]}" in
-    best)   ((best++)) ;;
-    better) ((warn++)) ;;
-    bad)    ((bad++)) ;;
+  best) ((best++)) ;;
+  better) ((warn++)) ;;
+  bad) ((bad++)) ;;
   esac
 done
 
@@ -401,16 +440,16 @@ echo -e "${color_green}${color_bold}Best:${color_reset} $best   ${color_yellow}$
 # ---
 printf "%-6s %-10s %s\n" "Level" "Count" "Description"
 printf "%-6s %-10s %s\n" "-----" "-----" "-----------"
-printf "%-6s %-10d %s\n" "B03" "$best"  "✅ Best practices"
-printf "%-6s %-10d %s\n" "B02" "$warn"  "⚠️ Warnings / Better"
-printf "%-6s %-10d %s\n" "B01" "$bad"   "❌ Violations"
+printf "%-6s %-10d %s\n" "B03" "$best" "✅ Best practices"
+printf "%-6s %-10d %s\n" "B02" "$warn" "⚠️ Warnings / Better"
+printf "%-6s %-10d %s\n" "B01" "$bad" "❌ Violations"
 printf "%-6s %-10d %s\n" "B00" "$bonus" "🌟 Bonus points"
 
 # --- Risk Assessment
 assess_risk() {
-  if (( bad == 0 && warn <= 2 )); then
+  if ((bad == 0 && warn <= 2)); then
     RISK_TEXT="✅ Excellent"
-  elif (( bad == 0 && warn <= 4 )); then
+  elif ((bad == 0 && warn <= 4)); then
     RISK_TEXT="⚠️ Fair"
   else
     RISK_TEXT="🔴 Needs review"
