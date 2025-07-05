@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
+# shellcheck shell=bash
+
 # --- top10_validator.sh: Check a script against our Bash Top 10 (Color + Markdown) ---
 
 # shellcheck disable=SC2034 # intentional: VERSION is used by automation
-# shellcheck disable=SC2034
-VERSION="1.0.0"
+VERSION="2.1.0"
 
 # --- Enable strict mode for safety and fail-fast behavior ---
 set -euo pipefail
@@ -50,24 +51,30 @@ RULES[1]="Uses awk for structured data, sed only for simple replacements"
 # --- Function to show usage help ---
 show_help() {
   cat <<EOF
-top10_validator.sh [OPTIONS] <script.sh>
-Check a Bash script for Top 10 best practices.
+Usage: ./top10_validator.sh [script.sh] [options]
 
-Supported Options:
-  --md, --markdown        Output result in Markdown format
-  --output md|markdown    Same as --md
-  --quiet-header          Hide the Top 10 header banner (default: true)
-  --hide-script-name      Hide script filename in output (default: true)
+Options:
+  -h, --help              Show this help message
   --version               Show script version
-  --help                  Show this help message
+  --md, --markdown        Output results to Markdown
+  --output md             Same as --markdown
+  --output=md             Same as --markdown
+  --quiet-header          Hide header line in output (default)
+  --show-header           Show header line in output
+  --hide-script-name      Hide script name from output (default)
+  --show-script-name      Show script name in output
+  --footer                Add footer with validator/commit info (default)
+  --no-footer             Disable footer in Markdown output
+  --footer=true|false     Explicitly enable/disable footer
 
 Examples:
-  ./top10_validator.sh myscript.sh
-  ./top10_validator.sh myscript.sh --md
-  ./top10_validator.sh myscript.sh --output=markdown
-  ./top10_validator.sh myscript.sh --hide-script-name=false
+  ./top10_validator.sh ./myscript.sh
+  ./top10_validator.sh ./myscript.sh --output md
+  ./top10_validator.sh ./myscript.sh --markdown --footer=false
+
 EOF
 }
+
 
 # --- Parse command-line arguments ---
 if [[ $# -lt 1 ]]; then
@@ -79,6 +86,7 @@ fi
 SCRIPT=""
 MD_OUT=false
 QUIET_HEADER=true
+SHOW_FOOTER=true
 HIDE_SCRIPT_NAME=true
 expecting_output_arg=false
 
@@ -97,6 +105,13 @@ for arg in "$@"; do
     --output=md|--output=markdown) MD_OUT=true ;;
     --output=*) val="${arg#*=}"; [[ "$val" == "md" || "$val" == "markdown" ]] && MD_OUT=true ;;
     --quiet-header) QUIET_HEADER=true ;;
+    --no-footer) SHOW_FOOTER=false ;;
+    --footer) SHOW_FOOTER=true ;;
+    --footer=*)
+      val="${arg#*=}"
+      [[ "$val" == "false" ]] && SHOW_FOOTER=false
+      [[ "$val" == "true" ]] && SHOW_FOOTER=true
+      ;;    
     --show-header) QUIET_HEADER=false ;;
     --hide-script-name) HIDE_SCRIPT_NAME=true ;;
     --show-script-name) HIDE_SCRIPT_NAME=false ;;
@@ -308,7 +323,7 @@ Best: $best   Warn: $warn   Bad: $bad   Bonus: $bonus
 Level  Count     Description
 -----  --------  -----------------------
 B03    $(printf "%-8d" "$best") ✅ Best practices
-B02    $(printf "%-8d" "$warn") 🟠 Warnings / Better
+B02    $(printf "%-8d" "$warn") ⚠️  Warnings / Better
 B01    $(printf "%-8d" "$bad") ❌ Violations
 B00    $(printf "%-8d" "$bonus") 🌟 Bonus points
 
@@ -388,7 +403,7 @@ echo -e "${color_green}${color_bold}Best:${color_reset} $best   ${color_yellow}$
 printf "%-6s %-10s %s\n" "Level" "Count" "Description"
 printf "%-6s %-10s %s\n" "-----" "-----" "-----------"
 printf "%-6s %-10d %s\n" "B03" "$best"  "✅ Best practices"
-printf "%-6s %-10d %s\n" "B02" "$warn"  "🟠 Warnings / Better"
+printf "%-6s %-10d %s\n" "B02" "$warn"  "⚠️ Warnings / Better"
 printf "%-6s %-10d %s\n" "B01" "$bad"   "❌ Violations"
 printf "%-6s %-10d %s\n" "B00" "$bonus" "🌟 Bonus points"
 
@@ -397,7 +412,7 @@ assess_risk() {
   if (( bad == 0 && warn <= 2 )); then
     RISK_TEXT="✅ Excellent"
   elif (( bad == 0 && warn <= 4 )); then
-    RISK_TEXT="🟡 Fair"
+    RISK_TEXT="⚠️ Fair"
   else
     RISK_TEXT="🔴 Needs review"
   fi
