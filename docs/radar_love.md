@@ -1,8 +1,8 @@
-# radar_love.sh - v0.0.2 - 2025-07-05 19:29:37
+# radar_love.sh - v0.0.3 - 2025-07-05 19:38:01
 
-[![Version](https://img.shields.io/badge/version-0.0.2-purple.svg)](./radar_love.sh)
+[![Version](https://img.shields.io/badge/version-0.0.3-purple.svg)](./radar_love.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/radar_love.md)
-[![Size](https://img.shields.io/badge/size-13KB-yellow)](./radar_love.sh)
+[![Size](https://img.shields.io/badge/size-12KB-yellow)](./radar_love.sh)
 [![Updated](https://img.shields.io/badge/updated-2025--07--05-blue)](./radar_love.sh)
 [![Bash](https://img.shields.io/badge/bash-5--2--21-red)](https://www.gnu.org/software/bash/)
 
@@ -11,7 +11,21 @@
 - Variables Set - radar_love.sh
 
 ## High-level summary - radar_love.sh
-
+- COLOR & FORMAT DEFINITIONS
+- EMOJI
+- CONFIGURATION
+- Input file locations
+- Logging / Output
+- Progress Bar
+- Early --help/--version
+- Parse Flags
+- Clean Existing Project Folder If Needed
+- Ensure Project Folder Exists
+- Copy .gitignore
+- Copy Input Files
+- Pre-commit hook for sanity_check
+- Version bump (multi-lang aware)
+- MAIN
 
 ## Variables Set - radar_love.sh
 - BUILD
