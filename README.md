@@ -1,19 +1,24 @@
-# 🛠️ medium_scripts
+## 🚀 Included Scripts
+# 🧩 medium_scripts
 
-A battle-tested collection of Bash scripts to automate, validate, and optimize your development workflow.
+A curated toolbox of Bash automation scripts designed to simplify, standardize, and secure your development workflows.
+
+> Created and maintained by [@raymonepping](https://github.com/raymonepping)  
+> ✨ Featured in multiple [Medium articles](https://medium.com/@raymonepping)
 
 ---
 
-## 🚀 Included Scripts
+## 📜 Scripts Included
 
-| Script | Purpose |
-|--------|---------|
-| `commit_gh.sh` | Smart Git commit and push automation with tree regen and Dependabot awareness |
-| `sanity_check.sh` | Multi-tool validator with linting, formatting, and report generation |
-| `bump_version.sh` | Semantic versioning bump for any script, with changelog tracking |
-| `generate_documentation.sh` | Markdown doc generator for scripts with optional lint output |
-| `folder_tree.sh` | Visual folder tree generator (uses `broot`, optional) |
-| `top10_validator.sh` | Bash Top 10 best practice enforcer, scoring your scripts |
+| Script                        | Description                                                                   |
+|-------------------------------|-------------------------------------------------------------------------------|
+| `bump_version.sh`             | Semantic version bumper with changelog support (`--major`, `--minor`, etc.)   |
+| `commit_gh.sh`                | Smart Git commit/push helper with rebase safety, tree regen, Dependabot       |
+| `folder_tree.sh`              | Folder structure visualizer using `broot` or `tree`                           |
+| `generate_documentation.sh`   | Auto-generates Markdown docs for your Bash scripts (`--summary`, `--depth`)   |
+| `sanity_check.sh`             | Linter/formatter for `.sh`, `.py`, `.js`, and `.tf` (with Markdown report)    |
+| `top10_validator.sh`          | Validates scripts against the Bash Top 10 best practices                      |
+| `trigger_git_scan.sh`         | Adds GitHub Actions status badges to your `README.md` automatically           |
 
 ---
 
