@@ -4,6 +4,16 @@ set -euo pipefail
 # shellcheck disable=SC2034
 VERSION="1.0.4"
 
+GENERATE_TREE=0  # default is false
+
+# Check for --tree flag
+for arg in "$@"; do
+  if [[ "$arg" == "--tree" ]]; then
+    GENERATE_TREE=1
+    break
+  fi
+done
+
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<EOF
 Usage: commit_gh [--quiet]
@@ -19,6 +29,7 @@ Automates common Git commit and push operations with smart handling:
 
 Options:
   --quiet, -q   Suppress most output (still shows important errors)
+  --tree         Generate updated folder tree (default: disabled)
   --help, -h    Show this help and exit
 
 Examples:
@@ -143,9 +154,11 @@ if [[ -f .github/dependabot.yml ]]; then
   msg "🔐 Dependabot is enabled. Base image CVEs will be monitored automatically by GitHub."
 fi
 
-if command -v folder_tree &>/dev/null; then
-  msg "🌳 Generating updated folder tree..."
-  folder_tree --preset terraform,github --output markdown >/dev/null
-else
-  msg "⚠️  'folder_tree' command not found — skipping tree update."
+if [[ $GENERATE_TREE -eq 1 ]]; then
+  if command -v folder_tree &>/dev/null; then
+    msg "🌳 Generating updated folder tree..."
+    folder_tree --preset terraform,github --output markdown >/dev/null
+  else
+    msg "⚠️  'folder_tree' command not found — skipping tree update."
+  fi
 fi
