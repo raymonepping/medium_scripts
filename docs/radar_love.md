@@ -1,12 +1,76 @@
-# vault_radar_builder.sh - v1.0.1 - 2025-07-05 17:26:40
+# radar_love.sh - 2025-07-05 17:26:36
 
-[![Version](https://img.shields.io/badge/version-1.0.1-purple.svg)](./vault_radar_builder.sh)
-[![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/vault_radar_builder.md)
-[![Size](https://img.shields.io/badge/size-9.9KB-yellow)](./vault_radar_builder.sh)
-[![Updated](https://img.shields.io/badge/updated-2025--07--05-blue)](./vault_radar_builder.sh)
+⚠️ No version detected — please run `bump_version` against this script.
+
+[![Version](https://img.shields.io/badge/version-0.0.0-purple.svg)](./radar_love.sh)
+[![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/radar_love.md)
+[![Size](https://img.shields.io/badge/size-13KB-yellow)](./radar_love.sh)
+[![Updated](https://img.shields.io/badge/updated-2025--07--05-blue)](./radar_love.sh)
 [![Bash](https://img.shields.io/badge/bash-5--2--21-red)](https://www.gnu.org/software/bash/)
 
 ## Table of Contents
+- High-level summary - radar_love.sh
+- Variables Set - radar_love.sh
+
+## High-level summary - radar_love.sh
+
+
+## Variables Set - radar_love.sh
+- BUILD
+- COMMIT
+- CREATE
+- DIR
+- FILE_BUILDER
+- FILE_FOOTER
+- FILE_HEADER
+- FILE_INPUT
+- FRESH
+- GH_USER
+- GITIGNORE_SOURCES
+- LANGUAGE
+- PROJECT_FOLDER
+- REPO_NAME
+- REQUEST
+- SCENARIO
+- SCRIPTS_FOLDER
+- STAGED_FILES
+
+- High-level summary - commit_gh.sh
+- Variables Set - commit_gh.sh
+
+## High-level summary - commit_gh.sh
+- Detect in-progress rebase or merge and exit if found
+- Commit staged changes if any
+- Stash unstaged changes if any, then rebase
+- Smart Push Logic
+- Output up-to-date message if nothing to commit or push
+
+## Variables Set - commit_gh.sh
+- COMMIT_MESSAGE
+- DD
+- DID_COMMIT
+- DID_PUSH
+- GENERATE_TREE
+- MM
+- QUIET
+- VERSION
+- YYYY
+
+- High-level summary - trigger_git_scan.sh
+- Variables Set - trigger_git_scan.sh
+
+## High-level summary - trigger_git_scan.sh
+
+
+## Variables Set - trigger_git_scan.sh
+- BRANCH
+- CLEANUP
+- CURRENT_BRANCH
+- MAIN_FILE_CREATED
+- PR_NUMBER
+- REPO
+- TRIGGER_FILE
+
 - High-level summary - vault_radar_builder.sh
 - Variables Set - vault_radar_builder.sh
 
