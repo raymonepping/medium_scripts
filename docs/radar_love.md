@@ -1,6 +1,6 @@
-# radar_love.sh - v0.0.1 - 2025-07-05 19:22:40
+# radar_love.sh - v0.0.2 - 2025-07-05 19:29:37
 
-[![Version](https://img.shields.io/badge/version-0.0.1-purple.svg)](./radar_love.sh)
+[![Version](https://img.shields.io/badge/version-0.0.2-purple.svg)](./radar_love.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/radar_love.md)
 [![Size](https://img.shields.io/badge/size-13KB-yellow)](./radar_love.sh)
 [![Updated](https://img.shields.io/badge/updated-2025--07--05-blue)](./radar_love.sh)
