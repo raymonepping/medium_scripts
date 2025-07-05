@@ -8,7 +8,7 @@
 ###############################################################
 # Python leak demo
 # [secret][high] GitHub Token
-GitHub Token = "GITHUB_TOKEN=ghp_1234567890abcdefghijklmnopqrstuvwxyz"
+GITHUB_TOKEN=ghp_1234567890abcdefghijklmnopqrstuvwxyz
 
 ###############################################################
 # End of Vault Radar Demo Leak Seed
