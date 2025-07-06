@@ -10,40 +10,51 @@
 
 ## 🎯 Purpose
 
-**A flexible, CLI-driven toolkit to simulate real-world code leaks—secrets, PII, and non-inclusive language—designed to test Vault Radar, Gitleaks, TruffleHog, and other scanners.**
+**A flexible, CLI-driven toolkit to simulate real-world code leaks—secrets, PII, and non-inclusive language—designed to test HashiCorp Vault Radar and other scanners.**
 
 ---
 
 ## ⚙️ How It Works
 
-1. **Edit your `Vault_Radar_input.json`:**
-   - Add/remove leaks, tweak values, assign languages, set scenario/severity.
+1. **Customize your builder input:**
+   - `Vault_Radar_input.json`: Add/remove leaks, tweak values, assign languages, set scenario/severity.
+   - Customize headers/footers via `header.tpl` and `footer.tpl`.
 
-2. **Run the builder:**
+2. **Run `radar_love.sh`:**
    ```bash
-   chmod +x ../vault_radar_builder.sh
-   ../vault_radar_builder.sh --output-path . --languages bash,python --scenario AWS --lint
+   ./radar_love.sh --create true --build true --commit true --request true \
+    --language python --scenario github
 
-Flags:
-
---languages: Select scripts to generate (bash, python, node, terraform, dockerfile)
---scenario: Filter leaks (e.g., AWS, PII)
---header-template / --footer-template: Inject custom banners
---lint: Run sanity checks
---dry-run: Preview mode
---quiet: Silent mode
+Available flags:
+| Flag         | Description                                                            |
+| ------------ | ---------------------------------------------------------------------- |
+| `--create`   | Create/connect GitHub repo (default: true)                             |
+| `--fresh`    | Reset the demo folder/repo if it already exists (default: false)       |
+| `--build`    | Build the demo leak files and scripts (default: false)                 |
+| `--commit`   | Commit the generated files via `commit_gh.sh` (default: false)         |
+| `--request`  | Trigger PR scan after commit (default: false)                          |
+| `--language` | Builder language (`bash`, `python`, `node`, `terraform`, `dockerfile`) |
+| `--scenario` | Leak scenario (`AWS`, `PII`, etc.)                                     |
+| `--debug`    | Print validated flag summary (use `--debug compact` for inline format) |
+| `--quiet`    | Silent mode — skip banners, ideal for cron or automation               |
+| `--status`   | Only validate flags and show current git status — exit immediately     |
+| `--version`  | Print version number                                                   |
+| `--help`     | Show usage help                                                        |
 
 📦 Output Files
 
-Vault_Radar_trigger.sh (Bash)
-Vault_Radar_trigger.py (Python)
-Vault_Radar_trigger.js (Node.js)
-Vault_Radar_trigger.Dockerfile (Docker)
-Vault_Radar_trigger.tf (Terraform)
-Vault_Radar_leaks_report.md (Markdown report)
-Vault_Radar_cleanup.sh (Removes everything)
-Vault_Radar_build.log (Log file)
-sanity_check_report.md (Optional, if --lint used)
+Vault_Radar_trigger.sh         → Bash leak demo
+Vault_Radar_trigger.py         → Python leak demo
+Vault_Radar_trigger.js         → Node.js leak demo
+Vault_Radar_trigger.tf         → Terraform leak demo
+Vault_Radar_trigger.Dockerfile → Dockerfile leak demo
+
+Vault_Radar_input.json         → Source input
+Vault_Radar_leaks_report.md    → Human-readable summary
+Vault_Radar_cleanup.sh         → Cleanup utility
+Vault_Radar_build.log          → Builder log
+sanity_check_report.md         → Optional, only with --lint
+
 
 🚦 Example Usage:
 
@@ -54,7 +65,7 @@ sanity_check_report.md (Optional, if --lint used)
     ../vault_radar_builder.sh --output-path . --languages bash,python --lint
 
 - Dry-run Node + Terraform:
-    - ../vault_radar_builder.sh --output-path . --languages node,terraform --dry-run
+    ../vault_radar_builder.sh --output-path . --languages node,terraform --dry-run
 
 🔧 Customization
 
@@ -63,6 +74,11 @@ sanity_check_report.md (Optional, if --lint used)
 🎯 Scenario filters — Focus on AWS, PII, etc.
 🎲 Random output size — Optional realism
 📝 Notes
+
+🛡️ Compatibility
+Tested with:
+
+✅ HashiCorp Vault Radar
 
 “In my mind my dreams are real...” — Oasis
 

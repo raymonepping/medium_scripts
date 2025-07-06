@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# shellcheck disable=SC2034
-VERSION="0.0.3"
-echo "$VERSION"
+# === radar_love.sh Metadata ===
+VERSION="1.1.0"
+DESCRIPTION="auto-seeding secret scanning demos"
+SCRIPT_NAME=$(basename "$0")
 
-# --- COLOR & FORMAT DEFINITIONS ---
+# -------- COLOR & FORMAT DEFINITIONS --------
 color_reset=$'\e[0m'
 color_red=$'\e[31m'
 color_green=$'\e[32m'
@@ -18,7 +19,7 @@ color_status=$'\e[37m'
 shake_on=$'\e[5m'
 shake_off=$'\e[25m'
 
-# --- EMOJI ---
+# -------- EMOJI --------
 icon_ok="☁️"
 icon_err="❌"
 icon_warn="⚠️"
@@ -32,8 +33,8 @@ icon_pr="🔀"
 icon_step="➡️"
 icon_done="🏁"
 
-# --- CONFIGURATION ---
-REPO_NAME="medium_live_forever"
+# -------- CONFIGURATION --------
+REPO_NAME="medium_gas_panic"
 GH_USER="$(gh api user --jq .login)"
 DIR="$(pwd)"
 PROJECT_FOLDER="$DIR/$REPO_NAME"
@@ -45,6 +46,36 @@ SCENARIO="AWS"
 COMMIT=false
 REQUEST=false
 
+# Early return for --version or --help
+if [[ "${1:-}" == "--version" ]]; then
+  echo "$SCRIPT_NAME v$VERSION — $DESCRIPTION"
+  exit 0
+elif [[ "${1:-}" == "--help" ]]; then
+  cat <<EOF
+Usage: ./$SCRIPT_NAME [--create true|false] [--build true|false] [--fresh true|false]
+                     [--language <lang>] [--scenario <scenario>]
+                     [--commit true|false] [--request true|false]
+                     [--debug [compact]] [--quiet] [--status] [--help] [--version]
+
+Flags:
+  --create true|false    Create (or connect) GitHub repo (default: true)
+  --build true|false     Generate demo leak branch/files (default: false)
+  --fresh true|false     Remove and recreate the repo/folder if it exists (default: false)
+  --language <lang>      Builder language for demo (default: bash)
+  --scenario <scenario>  Builder scenario for demo (default: AWS)
+  --commit true|false    Run commit_gh.sh if present (default: false)
+  --request true|false   Trigger PR scan (default: false)
+  --debug [compact]      Print parsed flags; use "compact" for inline display
+  --quiet                Suppress banner/progress output (for CI/cron)
+  --status               Only validate flags and show current Git status
+  --help                 Show usage and exit
+  --version              Show version and exit
+
+🎶 “I'm not like you... I was born on a different Cloud.” — Oasis
+EOF
+  exit 0
+fi
+
 check_github_auth() {
   if ! gh auth status &>/dev/null; then
     fail "GitHub CLI is not authenticated. Please run 'gh auth login' before continuing."
@@ -53,15 +84,84 @@ check_github_auth() {
   fi
 }
 
-# --- Input file locations ---
+# -------- Input file locations --------
 SCRIPTS_FOLDER="$HOME/Documents/VSC/MacOS_Environment/medium_scripts/radar_demo"
+FLAG_VALIDATOR="vault_radar_validator.sh"
 FILE_BUILDER="vault_radar_builder.sh"
 FILE_INPUT="vault_radar_input.json"
 FILE_HEADER="header.tpl"
 FILE_FOOTER="footer.tpl"
 GITIGNORE_SOURCES=("$SCRIPTS_FOLDER/.gitignore" "$HOME/.gitignore_global")
 
-# --- Logging / Output ---
+# --- Load Flag Validator ---
+if [[ -f "$SCRIPTS_FOLDER/$FLAG_VALIDATOR" ]]; then
+  source "$SCRIPTS_FOLDER/$FLAG_VALIDATOR"
+else
+  echo "❌ Missing validator: $SCRIPTS_FOLDER/$FLAG_VALIDATOR"
+  exit 1
+fi
+
+# --- Parse CLI Flags into FLAGS associative array ---
+declare -A FLAGS
+
+parse_flags() {
+  local -n FLAGS_REF=$1
+  shift  # 👈 Shift out "FLAGS" so only real CLI flags remain
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --build)
+        FLAGS_REF[build]="${2:-true}"
+        shift 2
+        ;;
+      --create)
+        FLAGS_REF[create]="${2:-true}"
+        shift 2
+        ;;
+      --fresh)
+        FLAGS_REF[fresh]="${2:-false}"
+        shift 2
+        ;;
+      --commit)
+        FLAGS_REF[commit]="${2:-false}"
+        shift 2
+        ;;
+      --request)
+        FLAGS_REF[request]="${2:-false}"
+        shift 2
+        ;;
+      --language)
+        FLAGS_REF[language]="$2"
+        shift 2
+        ;;
+      --debug)
+        FLAGS_REF[debug]="true"
+        shift
+        ;;
+      --debug)
+        FLAGS_REF[debug]="true"
+        shift
+        ;;
+      --quiet)
+        FLAGS_REF[quiet]="true"
+        shift
+        ;;
+      --status)
+        FLAGS_REF[status]="true"
+        shift
+        ;;        
+      --scenario)
+        FLAGS_REF[scenario]="$2"
+        shift 2
+        ;;
+      *)
+        echo "⚠️  Unknown flag: $1"
+        shift
+        ;;
+    esac
+  done
+}
+
+# -------- Logging / Output --------
 log() { echo "${color_status}${icon_step} $*${color_reset}"; }
 ok() { echo "${color_bold}${color_green}${icon_ok} $*${color_reset}"; }
 warn() { echo "${color_bold}${color_yellow}${icon_warn} $*${color_reset}"; }
@@ -71,7 +171,7 @@ fail() {
 }
 banner() { echo -e "\n${color_cyan}${color_bold}==== $* ====${color_reset}"; }
 
-# --- Progress Bar ---
+# -------- Progress Bar --------
 progress() {
   local pct="$1"
   local bar=""
@@ -83,13 +183,13 @@ progress() {
   if [ "$pct" -eq 100 ]; then echo; fi
 }
 
-# --- Early --help/--version ---
+# -------- Early --help/--version --------
 for arg in "$@"; do
   case "$arg" in
   --help)
-    cat <<EOF
+  cat <<EOF
 Usage: $0 [--create true|false] [--build true|false] [--fresh true|false] [--language <lang>] [--scenario <scenario>]
-           [--commit true|false] [--request true|false]
+           [--commit true|false] [--request true|false] [--debug] [--quiet] [--status]
   All file locations (scripts folder, .json, builder) are set at the top of the script.
   Example: ./radar_love.sh --build true --request true
 
@@ -101,6 +201,9 @@ Flags:
   --scenario <scenario>  Builder scenario for demo (default: AWS)
   --commit true|false    Run commit_gh.sh if present (default: false)
   --request true|false   Trigger PR scan (default: false)
+  --debug                Enable debug output (compact flag summary)
+  --quiet                Suppress banner and progress output (useful for CI or cron)
+  --status               Only print current Git status for the project folder and exit
   --help                 Show this help and exit
   --version              Show version and exit
 
@@ -115,52 +218,51 @@ EOF
   esac
 done
 
-# --- Parse Flags ---
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-  --create)
-    CREATE="$2"
-    shift 2
-    ;;
-  --build)
-    BUILD="$2"
-    shift 2
-    ;;
-  --fresh)
-    FRESH="$2"
-    shift 2
-    ;;
-  --language)
-    LANGUAGE="$2"
-    shift 2
-    ;;
-  --scenario)
-    SCENARIO="$2"
-    shift 2
-    ;;
-  --commit)
-    COMMIT="$2"
-    shift 2
-    ;;
-  --request)
-    REQUEST="$2"
-    shift 2
-    ;;
-  *) fail "Unknown option: $1" ;;
-  esac
-done
+# --- Run parsing and validation ---
+parse_flags FLAGS "$@"
+validate_flags FLAGS
 
-# --- Clean Existing Project Folder If Needed ---
+# -------- Set values from FLAGS --------
+CREATE="${FLAGS[create]:-true}"
+BUILD="${FLAGS[build]:-false}"
+FRESH="${FLAGS[fresh]:-false}"
+LANGUAGE="${FLAGS[language]:-bash}"
+SCENARIO="${FLAGS[scenario]:-AWS}"
+COMMIT="${FLAGS[commit]:-false}"
+REQUEST="${FLAGS[request]:-false}"
+DEBUG="${FLAGS[debug]:-false}"
+QUIET="${FLAGS[quiet]:-false}"
+STATUS="${FLAGS[status]:-false}"
+
+# -------- 666 --------
+if [[ "$DEBUG" == "true" ]]; then
+  echo -e "ℹ️  ⚙️  Parsed and validated flags:"
+  for key in "${!FLAGS[@]}"; do
+    printf "  → %-8s = %s\n" "$key" "${FLAGS[$key]}"
+  done | sort
+  echo -e "ℹ️  ✅ All flags validated successfully.\n"
+fi
+
+# -------- Clean Existing Project Folder If Needed --------
 if [[ "$FRESH" == "true" && -d "$PROJECT_FOLDER" ]]; then
   warn "✗ The folder '$PROJECT_FOLDER' already exists."
   rm -rf "$PROJECT_FOLDER"
   ok "Removed $PROJECT_FOLDER. Starting fresh."
 fi
 
-# --- Ensure Project Folder Exists ---
+# -------- Ensure Project Folder Exists --------
 mkdir -p "$PROJECT_FOLDER"
 
-# --- Copy .gitignore ---
+# -------- Early Exit: Git Status Only --------
+if [[ "$STATUS" == "true" ]]; then
+  banner "🔍 Git Status Only (--status mode)"
+  cd "$PROJECT_FOLDER" || exit 1
+  git status -s
+  cd - >/dev/null
+  exit 0
+fi
+
+# -------- Copy .gitignore --------
 copy_gitignore() {
   for src in "${GITIGNORE_SOURCES[@]}"; do
     if [[ -f "$src" ]]; then
@@ -173,7 +275,7 @@ copy_gitignore() {
   warn "No .gitignore template found, created a default."
 }
 
-# --- Copy Input Files ---
+# -------- Copy Input Files --------
 copy_inputs() {
   banner "${icon_copy} Copying input files..."
   for file in "$FILE_BUILDER" "$FILE_INPUT" "$FILE_HEADER" "$FILE_FOOTER"; do
@@ -225,7 +327,7 @@ copy_docs_and_license() {
   done
 }
 
-# --- Pre-commit hook for sanity_check ---
+# -------- Pre-commit hook for sanity_check --------
 setup_precommit_hook() {
   local HOOK_PATH="$PROJECT_FOLDER/.git/hooks/pre-commit"
   if command -v sanity_check &>/dev/null; then
@@ -313,7 +415,7 @@ build_leaky_branch() {
   cd - >/dev/null
 }
 
-# --- Version bump (multi-lang aware) ---
+# -------- Version bump (multi-lang aware) --------
 run_bump_version() {
   cd "$PROJECT_FOLDER"
   # Check for all generated radar_demo trigger files (.sh, .py, etc)
@@ -388,7 +490,7 @@ trigger_pr_and_scan() {
   cd - >/dev/null
 }
 
-# --- MAIN ---
+# -------- MAIN --------
 banner "${icon_push}${icon_ok}${icon_branch} $REPO_NAME: Cloudy Modular Secret Demo Pipeline!"
 
 progress 5
