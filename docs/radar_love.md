@@ -1,9 +1,9 @@
-# radar_love.sh - v0.0.3 - 2025-07-05 19:38:01
+# radar_love.sh - v1.1.0 - 2025-07-06 08:51:43
 
-[![Version](https://img.shields.io/badge/version-0.0.3-purple.svg)](./radar_love.sh)
+[![Version](https://img.shields.io/badge/version-1.1.0-purple.svg)](./radar_love.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/radar_love.md)
-[![Size](https://img.shields.io/badge/size-12KB-yellow)](./radar_love.sh)
-[![Updated](https://img.shields.io/badge/updated-2025--07--05-blue)](./radar_love.sh)
+[![Size](https://img.shields.io/badge/size-16KB-yellow)](./radar_love.sh)
+[![Updated](https://img.shields.io/badge/updated-2025--07--06-blue)](./radar_love.sh)
 [![Bash](https://img.shields.io/badge/bash-5--2--21-red)](https://www.gnu.org/software/bash/)
 
 ## Table of Contents
@@ -11,41 +11,35 @@
 - Variables Set - radar_love.sh
 
 ## High-level summary - radar_love.sh
-- COLOR & FORMAT DEFINITIONS
-- EMOJI
-- CONFIGURATION
-- Input file locations
-- Logging / Output
-- Progress Bar
-- Early --help/--version
-- Parse Flags
-- Clean Existing Project Folder If Needed
-- Ensure Project Folder Exists
-- Copy .gitignore
-- Copy Input Files
-- Pre-commit hook for sanity_check
-- Version bump (multi-lang aware)
-- MAIN
+- Load Flag Validator
+- Parse CLI Flags into FLAGS associative array
+- Run parsing and validation
 
 ## Variables Set - radar_love.sh
 - BUILD
 - COMMIT
 - CREATE
+- DEBUG
+- DESCRIPTION
 - DIR
 - FILE_BUILDER
 - FILE_FOOTER
 - FILE_HEADER
 - FILE_INPUT
+- FLAG_VALIDATOR
 - FRESH
 - GH_USER
 - GITIGNORE_SOURCES
 - LANGUAGE
 - PROJECT_FOLDER
+- QUIET
 - REPO_NAME
 - REQUEST
 - SCENARIO
 - SCRIPTS_FOLDER
+- SCRIPT_NAME
 - STAGED_FILES
+- STATUS
 - VERSION
 
 - High-level summary - commit_gh.sh
