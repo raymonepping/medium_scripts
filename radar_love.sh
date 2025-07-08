@@ -46,6 +46,33 @@ SCENARIO="AWS"
 COMMIT=false
 REQUEST=false
 
+check_dependencies() {
+  echo "==== 🔍 Validating Environment Dependencies ===="
+  local missing=0
+  local deps=(gh jq awk sed shfmt shellcheck git)
+
+  for cmd in "${deps[@]}"; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+      echo "❌ Missing: $cmd"
+      ((missing++))
+    else
+      echo "✅ Found: $cmd"
+    fi
+  done
+
+  if [[ $missing -gt 0 ]]; then
+    echo "🚨 $missing missing dependencies detected. Please install them and retry."
+    exit 1
+  else
+    echo "✅ All dependencies satisfied."
+  fi
+}
+
+if [[ "${1:-}" == "--validate" || "${1:-}" == "--deps" ]]; then
+  check_dependencies
+  exit 0
+fi
+
 # Early return for --version or --help
 if [[ "${1:-}" == "--version" ]]; then
   echo "$SCRIPT_NAME v$VERSION — $DESCRIPTION"
@@ -254,13 +281,21 @@ fi
 mkdir -p "$PROJECT_FOLDER"
 
 # -------- Early Exit: Git Status Only --------
-if [[ "$STATUS" == "true" ]]; then
-  banner "🔍 Git Status Only (--status mode)"
-  cd "$PROJECT_FOLDER" || exit 1
-  git status -s
-  cd - >/dev/null
+if [[ "${FLAGS[status]}" == "true" ]]; then
+  echo -e "\n==== 🔍 Git Status Only (--status mode) ===="
+
+  if [[ -d "$PROJECT_FOLDER/.git" ]]; then
+    pushd "$PROJECT_FOLDER" > /dev/null
+    git status
+    popd > /dev/null
+  else
+    echo "❌ No git repository found at $PROJECT_FOLDER"
+    exit 1
+  fi
+
   exit 0
 fi
+
 
 # -------- Copy .gitignore --------
 copy_gitignore() {

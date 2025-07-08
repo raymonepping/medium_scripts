@@ -17,6 +17,15 @@ validate_flags() {
 
   [[ "$debug" == "compact" ]] && compact=true && _flags_ref[debug]="true"
 
+  VALID_FLAGS=(create build fresh commit request quiet status language scenario debug validate version help)
+
+  # Check for any unknown flags
+  for key in "${!_flags_ref[@]}"; do
+    if [[ ! " ${VALID_FLAGS[*]} " =~ " ${key} " ]]; then
+      log_error "Unknown flag: --$key"
+    fi
+  done
+
   for flag in create build fresh commit request quiet status; do
     _flags_ref[$flag]="${_flags_ref[$flag]:-false}"
     if [[ "${_flags_ref[$flag]}" != "true" && "${_flags_ref[$flag]}" != "false" ]]; then
@@ -35,3 +44,4 @@ validate_flags() {
     _flags_ref[build]="true"
   fi
 }
+
