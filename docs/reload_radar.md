@@ -1,4 +1,4 @@
-# reload_radar.sh - v1.0.9 - 2025-07-10 16:09:44
+# reload_radar.sh - v1.0.9 - 2025-07-10 16:17:57
 
 [![Version](https://img.shields.io/badge/version-1.0.9-purple.svg)](./reload_radar.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/reload_radar.md)
@@ -11,8 +11,22 @@
 - Variables Set - reload_radar.sh
 
 ## High-level summary - reload_radar.sh
+- UTILS: Strict Mode Toggle
+- UTILS: Timestamp + Logging
+- FLAGS & HELP TEXT
+- ARG PARSING
+- SETUP PATHS
+- VERSION DETECTION
+- FORMULA LOCATOR
+- VERSION SYNC
+- COMMIT & PR
 - New PR-based release flow
+- TARBALL VALIDATION
+- FORMULA UPDATE
+- HOMEBREW CLEANUP
+- VERSION STATS & BACKUP
 - Optional auto-merge step
+- FINAL CHECK
 
 ## Variables Set - reload_radar.sh
 - BACKUP_SCRIPT
