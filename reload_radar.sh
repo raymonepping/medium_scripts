@@ -6,12 +6,14 @@ VERSION="1.0.9"
 set -euo pipefail
 set -o errtrace
 
+# --- UTILS: Strict Mode Toggle ---
 disable_strict_mode() { set +e +u +o pipefail; }
 enable_strict_mode() {
   set -euo pipefail
   set -o errtrace
 }
 
+# --- UTILS: Timestamp + Logging ---
 timestamp() { date '+%Y-%m-%d %H:%M:%S'; }
 log() {
   # If QUIET=true, only print ERROR/FAIL lines, else print everything
@@ -32,6 +34,7 @@ note() {
   echo -e "$@"
 }
 
+# --- FLAGS & HELP TEXT ---
 MERGE_PR=false
 CLEANUP_RELEASE=false
 HELP_MSG="
@@ -45,6 +48,7 @@ Options:
   --help         Show this help message and exit
 "
 
+# --- ARG PARSING ---
 QUIET=true
 for i in "$@"; do
   case "${i,,}" in
@@ -65,18 +69,19 @@ for i in "$@"; do
   esac
 done
 
+# --- SETUP PATHS ---
 log "INFO" "Reloading radar_love_cli cleanly..."
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RADAR_DIR="$SCRIPT_DIR/radar_love_cli"
-
 BACKUP_SCRIPT="$SCRIPT_DIR/medium_scripts/radar_backup/radar_backup.sh"
 
 cd "$SCRIPT_DIR"
 
+# --- VERSION DETECTION ---
 VERSION=$(awk -F'"' '/^VERSION="/ { print $2; exit }' "$RADAR_DIR/bin/radar_love")
 log "INFO" "Detected version: $VERSION"
 
+# --- FORMULA LOCATOR ---
 FORMULA_FILE="radar-love-cli.rb"
 FORMULA_PATH="$RADAR_DIR/Formula/$FORMULA_FILE"
 
@@ -85,6 +90,7 @@ if [[ ! -f "$FORMULA_PATH" ]]; then
   exit 1
 fi
 
+# --- VERSION SYNC ---
 log "INFO" "Found formula: $FORMULA_PATH"
 log "INFO" "Syncing VERSION to all scripts in bin/ and core/..."
 
@@ -132,6 +138,7 @@ if [[ "$QUIET" == false ]]; then
   note "Total scripts scanned: $TOTAL"
 fi
 
+# --- COMMIT & PR ---
 (
   cd "$RADAR_DIR"
   log "INFO" "Staging and committing CLI updates to Git..."
@@ -187,6 +194,7 @@ RELEASE_BRANCH="release/v$VERSION"
 )
 cd - >/dev/null
 
+# --- TARBALL VALIDATION ---
 TAR_URL="https://github.com/raymonepping/homebrew-radar-love-cli/archive/refs/tags/v${VERSION}.tar.gz"
 CODELOAD_URL="https://codeload.github.com/raymonepping/homebrew-radar-love-cli/tar.gz/refs/tags/v${VERSION}"
 TAR_NAME="radar-love-cli-${VERSION}.tar.gz"
@@ -227,6 +235,7 @@ fi
 SHA256=$(shasum -a 256 "/tmp/${TAR_NAME}" | cut -d ' ' -f1)
 log "INFO" "Calculated SHA256: $SHA256"
 
+# --- FORMULA UPDATE ---
 log "INFO" "Updating formula: $FORMULA_PATH"
 awk -v url="$TAR_URL" -v sha="$SHA256" -v version="$VERSION" '
   {
@@ -252,6 +261,7 @@ FORMULA_DIR_COMMIT=$(dirname "$FORMULA_PATH")
   fi
 )
 
+# --- HOMEBREW CLEANUP ---
 if brew list radar-love-cli &>/dev/null; then
   log "INFO" "Uninstalling existing radar-love-cli..."
   brew uninstall radar-love-cli
@@ -287,11 +297,11 @@ brew tap raymonepping/radar_love_cli
 
 log "INFO" "Installing radar_love_cli..."
 
-# brew install raymonepping/radar_love_cli/radar-love-cli
 set +e
 brew install raymonepping/radar_love_cli/radar-love-cli 2>&1 | tee /tmp/reload_brew.log
 set -e
 
+# --- VERSION STATS & BACKUP ---
 tag_stats() {
   local TAG_COUNT LATEST_TAG
   TAG_COUNT=$(git tag | grep -c .)
@@ -379,6 +389,8 @@ if [[ "${MERGE_PR:-false}" == true ]]; then
   )
 fi
 
+
+# --- FINAL CHECK ---
 log "INFO" "Verifying installation..."
 if command -v radar_love &>/dev/null; then
   log "INFO" "Installed at: $(which radar_love)"
