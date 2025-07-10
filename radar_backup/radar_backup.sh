@@ -10,11 +10,6 @@ source "$LIB"
 
 VERSION="2.1.15"
 
-# CONFIG_FILE="$SCRIPT_DIR/.backup.json"
-# CONFIG_FILE="$CONFIG_DIR/.backup.json"
-# CONFIG_FILE="/Users/raymon.epping/Documents/VSC/MacOS_Environment/medium_scripts/radar_backup/.backup.json"
-# CONFIG_FILE="$PWD/.backup.json"
-
 # Find config
 CONFIG_FILE=""
 # 1. Parse --config without shifting away all args!
@@ -81,20 +76,26 @@ show_help() {
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --backup)   MODE="backup"; shift ;;
-    # --restore)  MODE="restore"; FILE="${2:-}"; [[ -z "$FILE" ]] && echo "❌ Missing argument: --restore <file>" && exit 1; shift 2 ;;
-    # --recover)  MODE="recover"; FILE="${2:-}"; [[ -z "$FILE" ]] && echo "❌ Missing argument: --recover <file>" && exit 1; shift 2 ;;
+    
+    
     --restore)
       MODE="restore"
       shift
-      FILE="$1"
-      # Only prepend if not an absolute or relative path
+      FILE="${1:-}"
+      if [[ -z "$FILE" ]]; then
+        echo "❌ Missing argument: --restore <file>"
+        exit 1
+      fi
       [[ "$FILE" == */* ]] || FILE="$BACKUP_DIR/$FILE"
       shift
       ;;
     --recover)
       MODE="recover"
       shift
-      FILE="$1"
+      if [[ -z "$FILE" ]]; then
+        echo "❌ Missing argument: --restore <file>"
+        exit 1
+      fi
       [[ "$FILE" == */* ]] || FILE="$BACKUP_DIR/$FILE"
       shift
       ;;

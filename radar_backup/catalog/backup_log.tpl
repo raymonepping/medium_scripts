@@ -18,10 +18,6 @@
 
 {{EXCLUSIONS}}
 
-yaml
-Kopiëren
-Bewerken
-
 ---
 
 ## ✅ Integrity Check Results
