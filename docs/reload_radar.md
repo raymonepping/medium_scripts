@@ -1,11 +1,9 @@
-# reload_radar.sh - 2025-07-08 19:05:28
+# reload_radar.sh - v1.0.9 - 2025-07-10 16:09:44
 
-⚠️ No version detected — please run `bump_version` against this script.
-
-[![Version](https://img.shields.io/badge/version-0.0.0-purple.svg)](./reload_radar.sh)
+[![Version](https://img.shields.io/badge/version-1.0.9-purple.svg)](./reload_radar.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/reload_radar.md)
-[![Size](https://img.shields.io/badge/size-7.8KB-yellow)](./reload_radar.sh)
-[![Updated](https://img.shields.io/badge/updated-2025--07--08-blue)](./reload_radar.sh)
+[![Size](https://img.shields.io/badge/size-12KB-yellow)](./reload_radar.sh)
+[![Updated](https://img.shields.io/badge/updated-2025--07--10-blue)](./reload_radar.sh)
 [![Bash](https://img.shields.io/badge/bash-5--2--21-red)](https://www.gnu.org/software/bash/)
 
 ## Table of Contents
@@ -13,10 +11,13 @@
 - Variables Set - reload_radar.sh
 
 ## High-level summary - reload_radar.sh
-- Remaining steps unchanged below
+- New PR-based release flow
+- Optional auto-merge step
 
 ## Variables Set - reload_radar.sh
+- BACKUP_SCRIPT
 - BASENAME
+- CLEANUP_RELEASE
 - CODELOAD_URL
 - CUR_VERSION
 - FILESIZE
@@ -27,11 +28,15 @@
 - HELP_MSG
 - LATEST_TAG
 - MAJOR_RELEASE
+- MERGE_PR
+- MINOR_RELEASE
 - NC
+- PATCH_RELEASE
 - PERMS
 - QUIET
 - RADAR_BIN
 - RADAR_DIR
+- RELEASE_BRANCH
 - REMOTE_URL
 - SCRIPT_DIR
 - SHA256
