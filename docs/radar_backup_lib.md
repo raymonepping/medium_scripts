@@ -1,8 +1,8 @@
-# radar_backup_lib.sh - v1.0.9 - 2025-07-10 11:52:34
+# radar_backup_lib.sh - v1.0.9 - 2025-07-10 13:18:55
 
 [![Version](https://img.shields.io/badge/version-1.0.9-purple.svg)](./radar_backup_lib.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/radar_backup_lib.md)
-[![Size](https://img.shields.io/badge/size-8.4KB-yellow)](./radar_backup_lib.sh)
+[![Size](https://img.shields.io/badge/size-9.2KB-yellow)](./radar_backup_lib.sh)
 [![Updated](https://img.shields.io/badge/updated-2025--07--10-blue)](./radar_backup_lib.sh)
 [![Bash](https://img.shields.io/badge/bash-5--2--21-red)](https://www.gnu.org/software/bash/)
 
