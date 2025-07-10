@@ -1,0 +1,7 @@
+# Ignore node_modules, git, and temp files
+node_modules/
+.git/
+*.swp
+backup/
+restore_*
+bin/.DS_Store

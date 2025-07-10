@@ -1,0 +1,18 @@
+{
+  "source": "/Users/raymon.epping/Documents/VSC/MacOS_Environment/radar_love_cli",
+  "backup_dir": "/Users/raymon.epping/Documents/VSC/MacOS_Environment/medium_scripts/radar_backup/backup",
+  "catalog_dir": "/Users/raymon.epping/Documents/VSC/MacOS_Environment/medium_scripts/radar_backup/catalog",
+  "include": [
+    "bin/",
+    "catalog/",
+    "core/",
+    "Formula/",
+    "LICENSE",
+    "README.md"
+  ],
+  "exclude": [
+    "bin/.DS_Store",
+    ".backup.json",
+    "radar_love_cli*.gz"
+  ]
+}
