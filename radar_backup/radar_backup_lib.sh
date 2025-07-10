@@ -150,7 +150,7 @@ backup_project() {
 
   get_last_n_backups "$mdlog" "$N" > "$summary_file"
   printf '%s\n' "${excludes_arr[@]}" > "$exclusions_file"
-  
+
   # Replace this with a real integrity check if desired
   echo "All backup SHA256 checks: OK" > "$integrity_file"
 

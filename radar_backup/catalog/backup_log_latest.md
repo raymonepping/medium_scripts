@@ -2,7 +2,7 @@
 
 [![Backups](https://img.shields.io/badge/Backups-Automated-green)](#)
 [![Integrity](https://img.shields.io/badge/Integrity-Checked-brightgreen)](#)
-[![Last Backup](https://img.shields.io/badge/Last_Backup-v2.1.15-blue)](#)
+[![Last Backup](https://img.shields.io/badge/Last_Backup-v2.8.0-blue)](#)
 
 ---
 
@@ -10,7 +10,11 @@
 
 | Date/Time           | Tag         | Parent  | Commit    | Filename                        | Size     | SHA256                             | Status   |
 |---------------------|-------------|---------|-----------|----------------------------------|----------|-------------------------------------|----------|
-| 2025-07-10 15:23:01 | v2.1.15 | v2.1.15 | 65a49c770ae678c9596fa738fb880ddade1b3c09 | v2.1.15_20250710_152301.tar.gz | 60K | 0260f6069b44784534b28a1f5c0a675b693d97549c26ac210a08bd01ad059cfd | ok |
+| 2025-07-10 17:28:23 | v2.8.0 | v2.8.0 | a15ac104cb25a42eb9a55fcfe699fd9806a49b09 | v2.8.0_20250710_172823.tar.gz | 60K | 960d1aa596a9ceeef6a2832da3e88d61d4ce8f1fcc95f2786de213f5d9e24c17 | ok |
+| 2025-07-10 17:29:34 | v2.8.0 | v2.8.0 | a15ac104cb25a42eb9a55fcfe699fd9806a49b09 | v2.8.0_20250710_172934.tar.gz | 60K | 9f69bb63eea4a78f46c15dd944fbcbff212c5b27879722e3a69a5959fe23209e | ok |
+| 2025-07-10 17:30:51 | v2.8.0 | v2.8.0 | a15ac104cb25a42eb9a55fcfe699fd9806a49b09 | v2.8.0_20250710_173051.tar.gz | 60K | 259e8e4281177e413b969396b692bff9c15edd3643c799c85a19039260a0ac28 | ok |
+| 2025-07-10 17:37:38 | v2.8.0 | v2.8.0 | a15ac104cb25a42eb9a55fcfe699fd9806a49b09 | v2.8.0_20250710_173738.tar.gz | 60K | d40759111608b9fde95307469a09a1a9b25488febf930c75f061db5a530f7284 | ok |
+| 2025-07-10 17:40:13 | v2.8.0 | v2.8.0 | a15ac104cb25a42eb9a55fcfe699fd9806a49b09 | v2.8.0_20250710_174013.tar.gz | 60K | 6713442cdaf761df1d0979a2fbf41a7f1d9d3c9129354a4d2d6cc4fbfc7fbe6e | ok |
 
 ---
 
@@ -41,7 +45,7 @@ All backup SHA256 checks: OK
 ---
 Variables explained:
 
-v2.1.15: Latest backup tag
+v2.8.0: Latest backup tag
 
 5: Number of summary rows to show (e.g. 5)
 
