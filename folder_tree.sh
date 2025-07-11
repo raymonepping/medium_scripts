@@ -1,8 +1,32 @@
 #!/usr/bin/env bash
 set -euo pipefail
+set -o errtrace
 
-# shellcheck disable=SC2034
-VERSION="1.5.7"
+disable_strict_mode() { set +e +u +o pipefail; }
+enable_strict_mode()  { set -euo pipefail; set -o errtrace; }
+
+VERSION="1.5.8"
+
+# --- COLORS & ICONS ---
+color_reset=$'\e[0m'
+color_green=$'\e[32m'
+color_red=$'\e[31m'
+color_yellow=$'\e[33m'
+color_blue=$'\e[34m'
+color_bold=$'\e[1m'
+color_info=$'\e[36m'
+
+icon_ok="✅"
+icon_warn="⚠️"
+icon_err="❌"
+icon_tree="🌳"
+icon_info="ℹ️"
+icon_md="📜"
+icon_git="🔗"
+icon_hidden="👻"
+icon_preset="🧰"
+icon_excl="🛡️"
+icon_target="📂"
 
 # Default presets
 TARGET_DIR="."
@@ -12,6 +36,7 @@ OUTPUT_MODE="tree"
 CONFIG_FILE="$HOME/.treeignore"
 COLOR=true
 HISTORY_MODE=false
+HIDDEN=false
 SHOW_VERSION=false
 VERBOSE=false
 QUIET=false
@@ -19,7 +44,7 @@ HINT_FILE="$HOME/.broot_hint_seen"
 
 declare -A EXCLUDE_PRESETS
 
-# 🧰 Back-end / scripting remove
+# 🧰 Back-end / scripting
 EXCLUDE_PRESETS[node]="node_modules dist .next .vite"
 EXCLUDE_PRESETS[python]="__pycache__ .venv venv *.pyc"
 EXCLUDE_PRESETS[terraform]=".terraform"
@@ -47,7 +72,7 @@ print_usage() {
   echo "  --output markdown      Output Markdown-style list"
   echo "  --output broot         Output Broot-style list"
   echo "  --output git           Show Git-tracked files as Markdown list"
-  echo "  --output broot         Launch broot from target directory"
+  echo "  --hidden               Show hidden files and folders (dotfiles)"
   echo "  --no-color             Disable colored output"
   echo "  --version              Print script version"
   echo "  --bump-version <type>  Bump version: patch | minor | major"
@@ -59,12 +84,17 @@ print_usage() {
   exit 0
 }
 
-log() {
-  [[ "$QUIET" == false ]] && echo "$@"
-}
+log_info()    { [[ "$QUIET" == false ]] && echo -e "${color_info}${icon_info} $*${color_reset}"; }
+log_ok()      { [[ "$QUIET" == false ]] && echo -e "${color_green}${icon_ok} $*${color_reset}"; }
+log_warn()    { [[ "$QUIET" == false ]] && echo -e "${color_yellow}${icon_warn} $*${color_reset}"; }
+log_err()     { echo -e "${color_red}${icon_err} $*${color_reset}" >&2; }
+log_target()  { [[ "$QUIET" == false ]] && echo -e "${color_blue}${icon_target} $*${color_reset}"; }
+log_excl()    { [[ "$QUIET" == false ]] && echo -e "${color_yellow}${icon_excl} $*${color_reset}"; }
+log_preset()  { [[ "$QUIET" == false ]] && echo -e "${color_bold}${icon_preset} $*${color_reset}"; }
+log_hidden()  { [[ "$QUIET" == false ]] && echo -e "${color_yellow}${icon_hidden} $*${color_reset}"; }
 
 print_version() {
-  echo "folder_tree ${VERSION}"
+  echo -e "${icon_tree} folder_tree ${VERSION}"
   exit 0
 }
 
@@ -89,20 +119,20 @@ bump_version() {
     minor) MINOR=$((MINOR+1)); PATCH=0 ;;
     major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
     *)
-      echo "❌ Unknown bump type: $TYPE (use patch, minor, or major)"
+      log_err "Unknown bump type: $TYPE (use patch, minor, or major)"
       exit 1
       ;;
   esac
 
   local NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
   sed -i '' "s/^VERSION=\".*\"/VERSION=\"${NEW_VERSION}\"/" "$FILE"
-  echo "✅ Bumped version: $OLD_VERSION → $NEW_VERSION"
+  log_ok "Bumped version: $OLD_VERSION → $NEW_VERSION"
   exit 0
 }
 
 # Ensure tree is available
 if ! command -v tree &>/dev/null; then
-  echo "❌ 'tree' not found. Install it with: brew install tree"
+  log_err "'tree' not found. Install it with: brew install tree"
   exit 1
 fi
 
@@ -120,7 +150,7 @@ while [[ $# -gt 0 ]]; do
           EXCLUDES+=(${EXCLUDE_PRESETS[$type]})
           USED_PRESETS+=("$type")
         else
-          echo "⚠️ Unknown preset: $type"
+          log_warn "Unknown preset: $type"
         fi
       done
       shift 2
@@ -159,6 +189,10 @@ while [[ $# -gt 0 ]]; do
       HISTORY_MODE=true
       shift
       ;;
+    --hidden)
+      HIDDEN=true
+      shift
+      ;;
     -h|--help)
       print_usage
       ;;
@@ -171,7 +205,7 @@ done
 
 # Resolve and validate target dir
 if [[ ! -d "$TARGET_DIR" ]]; then
-  echo "❌ Directory not found: $TARGET_DIR"
+  log_err "Directory not found: $TARGET_DIR"
   exit 1
 fi
 TARGET_DIR="$(cd "$TARGET_DIR" && pwd)"
@@ -187,14 +221,14 @@ fi
 # Git-tracked output mode
 if [[ "$OUTPUT_MODE" == "git" ]]; then
   if ! command -v git &>/dev/null; then
-    echo "❌ Git not found."
+    log_err "Git not found."
     exit 1
   fi
   if [[ ! -d "$TARGET_DIR/.git" ]]; then
-    echo "❌ '$TARGET_DIR' is not a Git repo."
+    log_err "'$TARGET_DIR' is not a Git repo."
     exit 1
   fi
-  echo "📂 Git-tracked files in: $(basename "$TARGET_DIR")"
+  echo -e "${icon_git} Git-tracked files in: $(basename "$TARGET_DIR")"
   cd "$TARGET_DIR"
   git ls-tree -r --name-only HEAD | sed 's|[^/][^/]*|  - &|g'
   exit 0
@@ -203,15 +237,15 @@ fi
 # broot mode
 if [[ "$OUTPUT_MODE" == "broot" ]]; then
   if ! command -v broot &>/dev/null; then
-    echo "❌ 'broot' is not installed. Install it with: brew install broot"
+    log_err "'broot' is not installed. Install it with: brew install broot"
     exit 1
   fi
 
-  echo "🚀 Launching broot in: $TARGET_DIR"
+  echo -e "${color_green}🚀 Launching broot in: $TARGET_DIR${color_reset}"
   broot "$TARGET_DIR"
 
   if [[ ! -f "$HINT_FILE" && ! "$(command -v br)" ]]; then
-    echo -e "ℹ️  Tip: To unlock full broot functionality (like 'cd' from inside), install the shell function:"
+    echo -e "${color_info}${icon_info} Tip: To unlock full broot functionality (like 'cd' from inside), install the shell function:${color_reset}"
     echo -e "👉 Run: broot --install"
     echo -e "🔁 Then restart your terminal or run: exec \$SHELL"
     touch "$HINT_FILE"
@@ -223,51 +257,76 @@ fi
 # Build tree args
 TREE_ARGS=(-F --dirsfirst)
 [[ "$OUTPUT_MODE" != "markdown" && "$COLOR" == true ]] && TREE_ARGS+=(-C)
+[[ "$HIDDEN" == true ]] && TREE_ARGS+=(-a)
 for pattern in "${EXCLUDES[@]}"; do
   TREE_ARGS+=(-I "$pattern")
 done
 
-[[ "$SHOW_VERSION" == true ]] && echo "🌳 folder_tree ${VERSION}"
+[[ "$SHOW_VERSION" == true ]] && print_version
 
-log "📂 Target: $(basename "$TARGET_DIR")"
-[[ "${#USED_PRESETS[@]}" -gt 0 ]] && log "📦 Presets: ${USED_PRESETS[*]}"
-[[ -f "$CONFIG_FILE" ]] && log "🛡️ Excludes from: $(basename "$CONFIG_FILE")" || log "🛡️ Using built-in presets only"
-[[ "$VERBOSE" == true ]] && log "🔍 TREE_ARGS: ${TREE_ARGS[*]}"
+# --- Strict mode OFF: allow errors/nulls/empty ---
+disable_strict_mode
+
+log_target "Target: $(basename "$TARGET_DIR")"
+[[ "${#USED_PRESETS[@]}" -gt 0 ]] && log_preset "Presets: ${USED_PRESETS[*]}"
+[[ -f "$CONFIG_FILE" ]] && log_excl "Excludes from: $(basename "$CONFIG_FILE")" || log_excl "Using built-in presets only"
+[[ "$HIDDEN" == true ]] && log_hidden "Hidden files/folders will be shown."
+[[ "$VERBOSE" == true ]] && log_info "TREE_ARGS: ${TREE_ARGS[*]}"
 
 pushd "$TARGET_DIR" >/dev/null
+
 TREE_OUTPUT="$(tree "${TREE_ARGS[@]}" . 2>/dev/null || true)"
+
 popd >/dev/null
 
+enable_strict_mode
+
+# --- Clean tree output for empty check, don't break output file logic ---
+CLEAN_TREE="$(echo "$TREE_OUTPUT" | grep -vE '^[[:space:]]*$' | grep -vE '^[0-9]+ directories?, [0-9]+ files$')"
+
 if [[ "$OUTPUT_MODE" == "markdown" ]]; then
-  if [[ "$QUIET" == false ]]; then
-    echo "🌳 Generating updated folder tree..."
-  fi
   BADGE1="[![Folder Tree](https://img.shields.io/badge/folder--tree-generated-blue?logo=tree&style=flat-square)](./FOLDER_TREE.md)"
   BADGE2="[![Folder Tree Version](https://img.shields.io/badge/folder--tree-v${VERSION}-purple?style=flat-square)](./FOLDER_TREE.md)"
+  BADGE3="[![Bash Defender](https://img.shields.io/badge/bash--script-defensive--mode-blueviolet?logo=gnubash&logoColor=white&style=flat-square)](https://en.wikipedia.org/wiki/Defensive_programming)"
 
+
+  # Markdown will *always* be written, even if empty/quiet
   TREE_MD="$(
     echo "## 📁 Folder Tree - $(date '+%Y-%m-%d %H:%M:%S') ##"
     echo ""
     echo "$BADGE1"
     echo "$BADGE2"
+    echo "$BADGE3"
     echo ""
-    echo "$TREE_OUTPUT" | awk '
-      BEGIN { indent = ""; }
-      {
-        gsub(/\u2502/, "|")
-        gsub(/\u251c\u2500\u2500 /, "- ")
-        gsub(/\u2514\u2500\u2500 /, "- ")
-        gsub(/    /, "  ")
-        print
-      }
-    '
+    if [[ -z "$CLEAN_TREE" ]]; then
+      echo "**⚠️  Nothing to show. All contents excluded or directory is empty.**"
+    else
+      echo "$TREE_OUTPUT" | awk '
+        BEGIN { indent = ""; }
+        {
+          gsub(/\u2502/, "|")
+          gsub(/\u251c\u2500\u2500 /, "- ")
+          gsub(/\u2514\u2500\u2500 /, "- ")
+          gsub(/    /, "  ")
+          print
+        }
+      '
+    fi
     echo -e "\n---\n"
   )"
-  OUTPUT_FILE="$TARGET_DIR/FOLDER_TREE.md"
+  # OUTPUT_FILE="$TARGET_DIR/FOLDER_TREE.md"
+  # echo "$TREE_MD" > "$OUTPUT_FILE"
+
+  OUTPUT_FILE="$(pwd)/FOLDER_TREE.md"
   echo "$TREE_MD" > "$OUTPUT_FILE"
 
-  # Safe relative path for output
+
+  # Print summary unless --quiet
   if [[ "$QUIET" == false ]]; then
+    if [[ -z "$CLEAN_TREE" ]]; then
+      log_warn "Nothing to show. All contents excluded or directory is empty."
+    fi
+    # Relative path detection for nice output
     if command -v realpath &>/dev/null && realpath --help 2>&1 | grep -q -- '--relative-to'; then
       REL_PATH=$(realpath --relative-to="." "$OUTPUT_FILE")
     elif command -v python3 &>/dev/null; then
@@ -275,15 +334,15 @@ if [[ "$OUTPUT_MODE" == "markdown" ]]; then
     else
       REL_PATH="$OUTPUT_FILE"
     fi
-    echo "📜 Markdown output written to (overwrite): $REL_PATH"
+    echo -e "${color_green}${icon_ok} Markdown output written to (overwrite): $REL_PATH${color_reset}"
   fi
-  [[ -z "$TREE_OUTPUT" && "$QUIET" == false ]] && echo "⚠️  Nothing to show. All contents excluded or directory is empty."
   exit 0
 fi
 
-if [[ -z "$TREE_OUTPUT" ]]; then
-  [[ "$QUIET" == false ]] && echo "⚠️  Nothing to show. All contents excluded or directory is empty."
+if [[ -z "$CLEAN_TREE" ]]; then
+  log_warn "Nothing to show. All contents excluded or directory is empty."
   exit 0
 else
   echo "$TREE_OUTPUT"
 fi
+
