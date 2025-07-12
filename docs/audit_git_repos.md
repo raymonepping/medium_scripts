@@ -1,10 +1,10 @@
-# audit_git_repos.sh - 2025-07-12 20:05:56
+# audit_git_repos.sh - 2025-07-12 20:25:07
 
 ⚠️ No version detected — please run `bump_version` against this script.
 
 [![Version](https://img.shields.io/badge/version-0.0.0-purple.svg)](./audit_git_repos.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/audit_git_repos.md)
-[![Size](https://img.shields.io/badge/size-1.7KB-yellow)](./audit_git_repos.sh)
+[![Size](https://img.shields.io/badge/size-2.7KB-yellow)](./audit_git_repos.sh)
 [![Updated](https://img.shields.io/badge/updated-2025--07--12-blue)](./audit_git_repos.sh)
 [![Bash](https://img.shields.io/badge/bash-5--2--21-red)](https://www.gnu.org/software/bash/)
 
@@ -16,7 +16,13 @@
 
 
 ## Variables Set - audit_git_repos.sh
+- AUDITIGNORE_FILE
 - EXCLUDES
+- GREEN
 - IFS
 - OUTPUT_FILE
+- RED
+- RESET
+- ROOT
 - ROOT_DIR
+- YELLOW
