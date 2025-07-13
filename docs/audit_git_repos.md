@@ -1,11 +1,9 @@
-# audit_git_repos.sh - 2025-07-12 20:25:07
+# audit_git_repos.sh - v1.0.0 - 2025-07-13 06:36:04
 
-⚠️ No version detected — please run `bump_version` against this script.
-
-[![Version](https://img.shields.io/badge/version-0.0.0-purple.svg)](./audit_git_repos.sh)
+[![Version](https://img.shields.io/badge/version-1.0.0-purple.svg)](./audit_git_repos.sh)
 [![Docs](https://img.shields.io/badge/docs-generated-orange.svg)](./docs/audit_git_repos.md)
-[![Size](https://img.shields.io/badge/size-2.7KB-yellow)](./audit_git_repos.sh)
-[![Updated](https://img.shields.io/badge/updated-2025--07--12-blue)](./audit_git_repos.sh)
+[![Size](https://img.shields.io/badge/size-3.5KB-yellow)](./audit_git_repos.sh)
+[![Updated](https://img.shields.io/badge/updated-2025--07--13-blue)](./audit_git_repos.sh)
 [![Bash](https://img.shields.io/badge/bash-5--2--21-red)](https://www.gnu.org/software/bash/)
 
 ## Table of Contents
@@ -16,13 +14,12 @@
 
 
 ## Variables Set - audit_git_repos.sh
-- AUDITIGNORE_FILE
+- AUDIT_IGNORE_FILE
+- DRYRUN
 - EXCLUDES
-- GREEN
 - IFS
+- ORDER
 - OUTPUT_FILE
-- RED
-- RESET
-- ROOT
 - ROOT_DIR
-- YELLOW
+- SORT_BY
+- VERSION
