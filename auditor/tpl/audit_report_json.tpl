@@ -1,0 +1,8 @@
+{
+  "repos": [
+    {{ entries }}
+  ],
+  "missing": [
+    {{ summary }}
+  ]
+}

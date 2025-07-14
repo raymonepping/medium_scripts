@@ -5,7 +5,7 @@ set -o errtrace
 disable_strict_mode() { set +e +u +o pipefail; }
 enable_strict_mode()  { set -euo pipefail; set -o errtrace; }
 
-VERSION="1.5.8"
+VERSION="1.5.6"
 
 # --- COLORS & ICONS ---
 color_reset=$'\e[0m'
@@ -41,6 +41,7 @@ SHOW_VERSION=false
 VERBOSE=false
 QUIET=false
 HINT_FILE="$HOME/.broot_hint_seen"
+GROUP_EXT=""
 
 declare -A EXCLUDE_PRESETS
 
@@ -193,6 +194,18 @@ while [[ $# -gt 0 ]]; do
       HIDDEN=true
       shift
       ;;
+    --noreport)
+      TREE_ARGS+=("--noreport")
+      shift
+      ;;
+    --compute)
+      TREE_ARGS+=("--du")  # note: `tree` uses --du, not --compute
+      shift
+      ;;
+    -v|-t|-c|-U|-r)
+      TREE_ARGS+=("$1")
+      shift
+      ;;        
     -h|--help)
       print_usage
       ;;
@@ -216,6 +229,18 @@ if [[ -f "$CONFIG_FILE" ]]; then
   while IFS= read -r line; do
     [[ -n "$line" && ! "$line" =~ ^# ]] && EXCLUDES+=("$line")
   done < "$CONFIG_FILE"
+fi
+
+# If hidden mode is enabled, allow "bin" folders (but keep other excludes)
+if [[ "$HIDDEN" == true ]]; then
+  log_info "Hidden mode enabled — allowing additional folders to be shown."
+  # Define an array of folder names to allow ( "folder2" "folder3" )
+  ALLOW_FOLDERS=("bin")
+  log_hidden "Hidden mode override — allowed folders: ${ALLOW_FOLDERS[*]}"
+  # Loop through each allowed folder and remove it from EXCLUDES
+  for allow in "${ALLOW_FOLDERS[@]}"; do
+    EXCLUDES=($(printf '%s\n' "${EXCLUDES[@]}" | grep -vFx "$allow"))
+  done
 fi
 
 # Git-tracked output mode
@@ -255,7 +280,7 @@ if [[ "$OUTPUT_MODE" == "broot" ]]; then
 fi
 
 # Build tree args
-TREE_ARGS=(-F --dirsfirst)
+TREE_ARGS+=(-F --dirsfirst --sort name)
 [[ "$OUTPUT_MODE" != "markdown" && "$COLOR" == true ]] && TREE_ARGS+=(-C)
 [[ "$HIDDEN" == true ]] && TREE_ARGS+=(-a)
 for pattern in "${EXCLUDES[@]}"; do
@@ -276,6 +301,36 @@ log_target "Target: $(basename "$TARGET_DIR")"
 pushd "$TARGET_DIR" >/dev/null
 
 TREE_OUTPUT="$(tree "${TREE_ARGS[@]}" . 2>/dev/null || true)"
+
+# If not grouping, proceed as before (e.g. humanize sizes, print pretty, etc)
+if [[ "${TREE_ARGS[*]}" =~ --du ]]; then
+  TREE_OUTPUT="$(echo "$TREE_OUTPUT" | awk '
+    function human(x) {
+      units[0] = "B"; units[1] = "KB"; units[2] = "MB"; units[3] = "GB"; units[4] = "TB"
+      i = 0
+      while (x >= 1024 && i < 4) { x /= 1024; i++ }
+      return sprintf("%.1f %s", x, units[i])
+    }
+    {
+      while (match($0, /\[[[:space:]]*[0-9]+\]/)) {
+        size_str = substr($0, RSTART+1, RLENGTH-2)
+        gsub(/[[:space:]]/, "", size_str)
+        size_n = size_str + 0
+        hr = "[ " human(size_n) " ]"
+        pad = length(substr($0, RSTART, RLENGTH)) - length(hr)
+        if (pad > 0) hr = hr sprintf("%"pad"s", "")
+        $0 = substr($0, 1, RSTART-1) hr substr($0, RSTART+RLENGTH)
+      }
+      print
+    }
+    /^[[:space:]]*[0-9]+ bytes used/ {
+      total = $1 + 0
+      sub(/^[[:space:]]*[0-9]+ bytes used/, "")
+      printf("📦 Total: %s%s\n", human(total), $0)
+      next
+    }
+  ')"
+fi
 
 popd >/dev/null
 

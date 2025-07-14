@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+
+VERSION="1.1.0"
+SCRIPT_NAME="repository_audit.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$SCRIPT_DIR/../lib"
+
+TEMPLATE_MD="$SCRIPT_DIR/../tpl/audit_report.tpl"
+HEADER_TEMPLATE="$SCRIPT_DIR/../tpl/audit_report_header.tpl"
+FOOTER_TEMPLATE="$SCRIPT_DIR/../tpl/audit_report_footer.tpl"
+
+# Load shared functions
+# shellcheck source=lib/audit_utils.sh
+source "$LIB_DIR/audit_utils.sh"
+
+# Default values
+PARENT=""
+CHILD=""
+OUTDIR="$(pwd)"
+FORMAT="markdown"
+DRYRUN=false
+HELP=false
+SUMMARY=false
+
+# --- ACTION FLAGS: used to detect if we should run in interactive/wizard mode ---
+ACTION_FLAGS=( --parent --child --outdir --format --dryrun --summary )
+HAS_ACTION_FLAG="false"
+for arg in "$@"; do
+  for flag in "${ACTION_FLAGS[@]}"; do
+    if [[ "$arg" == "$flag" ]]; then
+      HAS_ACTION_FLAG="true"
+      break 2
+    fi
+  done
+done
+
+# Handle --version
+if [[ "${1:-}" == "--version" ]]; then
+  echo "$SCRIPT_NAME v$VERSION"
+  exit 0
+fi
+
+# Handle --help
+if [[ "${1:-}" == "--help" ]]; then
+  HELP=true
+fi
+
+# If NO action flags (and not asking for --help/--version), run the decision tree
+if [[ "$HAS_ACTION_FLAG" == "false" && "$HELP" == "false" && "$#" -eq 0 ]]; then
+  # shellcheck source=lib/decision_tree.sh
+  source "$LIB_DIR/decision_tree.sh"
+  run_decision_tree
+  exit 0
+fi
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --parent)  PARENT="$2"; shift 2 ;;
+    --child)   CHILD="$2"; shift 2 ;;
+    --outdir)  OUTDIR="$2"; shift 2 ;;
+    --format)  FORMAT="$2"; shift 2 ;;
+    --dryrun)  DRYRUN=true; shift ;;
+    --summary) SUMMARY=true; shift ;;
+    --version) echo "$SCRIPT_NAME v$VERSION"; exit 0 ;;
+    --help)    HELP=true; shift ;;
+    *) echo "❌ Unknown option: $1"; exit 1 ;;
+  esac
+done
+
+if [[ "$HELP" == true ]]; then
+  cat <<EOF
+📘 $SCRIPT_NAME (v$VERSION)
+
+Usage:
+  $SCRIPT_NAME --parent <folder> [--outdir <dir>] [--format markdown|csv|json] [--dryrun] [--summary]
+  $SCRIPT_NAME --child <repo_path> [--outdir <dir>] [--format markdown|csv|json] [--dryrun] [--summary]
+
+Options:
+  --parent     Parent directory to scan for Git repositories
+  --child      Single repository path to audit
+  --outdir     Output folder (default: current directory)
+  --format     Output format: markdown (default), csv, or json
+  --dryrun     Simulate only, don’t create any files
+  --summary    Include summary block at the end (markdown only)
+  --version    Show version information
+  --help       Show this help message
+
+Example:
+  $SCRIPT_NAME --parent ../projects --outdir ./reports --format csv
+EOF
+  exit 0
+fi
+
+if [[ -n "$PARENT" && -n "$CHILD" ]]; then
+  echo "❌ Please provide only one of --parent or --child"; exit 1
+fi
+if [[ -z "$PARENT" && -z "$CHILD" ]]; then
+  echo "❌ Please provide either --parent or --child"; exit 1
+fi
+
+# Normalize and validate format, set extension and template
+case "${FORMAT,,}" in
+  markdown | md | default | "" )
+    FORMAT="markdown"
+    EXT="md"
+    TEMPLATE="$SCRIPT_DIR/../tpl/audit_report_md.tpl"
+    HEADER_TEMPLATE="$SCRIPT_DIR/../tpl/audit_report_header.tpl"
+    FOOTER_TEMPLATE="$SCRIPT_DIR/../tpl/audit_report_footer.tpl"    
+    ;;
+  csv )
+    EXT="csv"
+    TEMPLATE="$SCRIPT_DIR/../tpl/audit_report_csv.tpl"
+    ;;
+  json )
+    EXT="json"
+    TEMPLATE="$SCRIPT_DIR/../tpl/audit_report_json.tpl"
+    ;;
+  * )
+    echo "❌ Unknown format: $FORMAT"
+    exit 1
+    ;;
+esac
+
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+mkdir -p "$OUTDIR"
+REPORT="$OUTDIR/repos_report_${TIMESTAMP}.${EXT}"
+
+# Run audit
+if [[ -n "$PARENT" ]]; then
+  audit_parent "$PARENT" "$REPORT" "$FORMAT" "$DRYRUN" "$HEADER_TEMPLATE" "$FOOTER_TEMPLATE"
+elif [[ -n "$CHILD" ]]; then
+  audit_child "$CHILD" "$REPORT" "$FORMAT" "$DRYRUN" "$HEADER_TEMPLATE" "$FOOTER_TEMPLATE"
+fi
+
+if [[ "$SUMMARY" == true && "$FORMAT" == "markdown" ]]; then
+  print_summary "$REPORT"
+fi
+
+if [[ "$DRYRUN" == false ]]; then
+  echo "✅ Report saved to: $REPORT"
+else
+  echo "🧪 Dry run completed."
+fi
+
+echo "ℹ️  Report location: $REPORT"
