@@ -1,0 +1,171 @@
+[
+  {
+    "id": "V_ROOT_READONLY_HIRTOLDIL21LBRLSMDKS_1753788127",
+    "domain": "local",
+    "roles": [
+      {
+        "role": "views_reader",
+        "bucket_name": "game_samples",
+        "origins": [
+          {
+            "type": "user"
+          }
+        ]
+      },
+      {
+        "role": "query_select",
+        "bucket_name": "game_samples",
+        "scope_name": "*",
+        "collection_name": "*",
+        "origins": [
+          {
+            "type": "user"
+          }
+        ]
+      },
+      {
+        "role": "fts_searcher",
+        "bucket_name": "game_samples",
+        "scope_name": "*",
+        "collection_name": "*",
+        "origins": [
+          {
+            "type": "user"
+          }
+        ]
+      },
+      {
+        "role": "data_reader",
+        "bucket_name": "game_samples",
+        "scope_name": "*",
+        "collection_name": "*",
+        "origins": [
+          {
+            "type": "user"
+          }
+        ]
+      }
+    ],
+    "groups": [],
+    "external_groups": [],
+    "name": "root",
+    "uuid": "aa89478a-f8d7-4fb0-b417-76e5d867cdf5",
+    "password_change_date": "2025-07-29T11:22:07.000Z"
+  },
+  {
+    "id": "V_ROOT_READWRITE_YKXNC7MHC25FTFG0DGXW_1753788134",
+    "domain": "local",
+    "roles": [
+      {
+        "role": "scope_admin",
+        "bucket_name": "game_samples",
+        "scope_name": "*",
+        "origins": [
+          {
+            "type": "user"
+          }
+        ]
+      },
+      {
+        "role": "query_update",
+        "bucket_name": "game_samples",
+        "scope_name": "*",
+        "collection_name": "*",
+        "origins": [
+          {
+            "type": "user"
+          }
+        ]
+      },
+      {
+        "role": "query_select",
+        "bucket_name": "game_samples",
+        "scope_name": "*",
+        "collection_name": "*",
+        "origins": [
+          {
+            "type": "user"
+          }
+        ]
+      },
+      {
+        "role": "query_insert",
+        "bucket_name": "game_samples",
+        "scope_name": "*",
+        "collection_name": "*",
+        "origins": [
+          {
+            "type": "user"
+          }
+        ]
+      },
+      {
+        "role": "query_delete",
+        "bucket_name": "game_samples",
+        "scope_name": "*",
+        "collection_name": "*",
+        "origins": [
+          {
+            "type": "user"
+          }
+        ]
+      },
+      {
+        "role": "fts_searcher",
+        "bucket_name": "game_samples",
+        "scope_name": "*",
+        "collection_name": "*",
+        "origins": [
+          {
+            "type": "user"
+          }
+        ]
+      },
+      {
+        "role": "fts_admin",
+        "bucket_name": "game_samples",
+        "origins": [
+          {
+            "type": "user"
+          }
+        ]
+      },
+      {
+        "role": "data_writer",
+        "bucket_name": "game_samples",
+        "scope_name": "*",
+        "collection_name": "*",
+        "origins": [
+          {
+            "type": "user"
+          }
+        ]
+      },
+      {
+        "role": "data_reader",
+        "bucket_name": "game_samples",
+        "scope_name": "*",
+        "collection_name": "*",
+        "origins": [
+          {
+            "type": "user"
+          }
+        ]
+      },
+      {
+        "role": "bucket_admin",
+        "bucket_name": "game_samples",
+        "origins": [
+          {
+            "type": "user"
+          }
+        ]
+      }
+    ],
+    "groups": [],
+    "external_groups": [],
+    "name": "root",
+    "uuid": "1270d67d-4311-4a41-a992-08d009119f9f",
+    "password_change_date": "2025-07-29T11:22:14.000Z"
+  }
+]

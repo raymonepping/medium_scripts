@@ -16,7 +16,11 @@ Options:
   --apply                 Apply Vault 'readonly' and 'readwrite' roles based on the exported JSON
   --readonly-id ID        Use this user ID for the Vault 'readonly' role (auto-detected by default)
   --readwrite-id ID       Use this user ID for the Vault 'readwrite' role (auto-detected by default)
+  --include PAT[,PAT...]  Only include Couchbase user IDs containing any of these comma-separated patterns
+  --exclude PAT[,PAT...]  Exclude any Couchbase user IDs containing these comma-separated patterns
+                          (Exclude always takes priority over include)
   --dry-run               Print Vault write commands but DO NOT apply them (safe preview)
+  --quiet, --silent       Suppress non-essential output (for CI/CD or scripting)
   --version               Show script version and exit
   -h, --help              Show this help message and exit
 
@@ -25,6 +29,8 @@ Examples:
   $0 --apply --readonly-id user1 --readwrite-id user2
   $0 --export --apply --dry-run
   $0 ./custom/path/to/.env
+  $0 --export --apply --include V_ROOT_READONLY,V_ROOT_READWRITE --exclude hashicorp
+    (Only syncs user IDs containing 'V_ROOT_READONLY' or 'V_ROOT_READWRITE', skipping any with 'hashicorp')
 
 Environment:
   Loads Couchbase connection variables from .env. Will not override your current shell's VAULT_ADDR or VAULT_TOKEN.
@@ -41,24 +47,76 @@ ENV_FILE=""
 READ_ID=""
 WRITE_ID=""
 DO_QUIET=false
+INCLUDE_PATTERNS=()
+EXCLUDE_PATTERNS=()
 
 # Parse flags
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --export)         DO_EXPORT=true; shift ;;
-    --apply)          DO_APPLY=true; shift ;;
-    --dry-run)        DO_DRYRUN=true; shift ;;
-    --quiet|--silent) DO_QUIET=true; shift ;;
-    --readonly-id)    READ_ID="$2"; shift 2 ;;
-    --readwrite-id)   WRITE_ID="$2"; shift 2 ;;
-    --version)        echo "$0 version $VERSION"; exit 0 ;;
-    -h|--help)        show_help ;;
-    *)                ENV_FILE="$1"; shift ;;
+  --export)
+    DO_EXPORT=true
+    shift
+    ;;
+  --apply)
+    DO_APPLY=true
+    shift
+    ;;
+  --dry-run)
+    DO_DRYRUN=true
+    shift
+    ;;
+  --quiet | --silent)
+    DO_QUIET=true
+    shift
+    ;;
+  --readonly-id)
+    READ_ID="$2"
+    shift 2
+    ;;
+  --readwrite-id)
+    WRITE_ID="$2"
+    shift 2
+    ;;
+  --include)
+    IFS=',' read -ra INCLUDE_PATTERNS <<<"${2// /}"
+    shift 2
+    ;;
+  --exclude)
+    IFS=',' read -ra EXCLUDE_PATTERNS <<<"${2// /}"
+    shift 2
+    ;;
+  --version)
+    echo "$0 version $VERSION"
+    exit 0
+    ;;
+  -h | --help) show_help ;;
+  *)
+    ENV_FILE="$1"
+    shift
+    ;;
   esac
 done
 
-info()  { $DO_QUIET || echo -e "$*"; }
+info() { $DO_QUIET || echo -e "$*"; }
 summary() { echo -e "$*"; }
+
+should_include_id() {
+  local id="$1"
+  local i
+  # Exclude always wins
+  for i in "${EXCLUDE_PATTERNS[@]:-}"; do
+    [[ -n "$i" && "$id" == *"$i"* ]] && return 1
+  done
+  # If no include patterns, include all
+  if [[ ${#INCLUDE_PATTERNS[@]} -eq 0 ]]; then
+    return 0
+  fi
+  # If includes set, only include if at least one matches
+  for i in "${INCLUDE_PATTERNS[@]:-}"; do
+    [[ -n "$i" && "$id" == *"$i"* ]] && return 0
+  done
+  return 1
+}
 
 if ! $DO_EXPORT && ! $DO_APPLY; then
   DO_EXPORT=true
@@ -70,8 +128,6 @@ fi
 
 if [[ -n "$ENV_FILE" && -f "$ENV_FILE" ]]; then
   ENV_PATH="$ENV_FILE"
-elif [[ -f ../../backend/.env ]]; then
-  ENV_PATH=../../backend/.env
 elif [[ -f .env ]]; then
   ENV_PATH=.env
 else
@@ -81,17 +137,33 @@ fi
 
 if $DO_EXPORT; then
   summary "ℹ️  Loading environment from $ENV_PATH"
-  export $(grep -v '^#' "$ENV_PATH" | grep -v '^VAULT_' | xargs)
+  set -a
+  # shellcheck source=/dev/null
+  . "$ENV_PATH"
+  set +a
+
   : "${COUCHBASE_USERNAME:?Must set COUCHBASE_USERNAME in .env}"
   : "${COUCHBASE_PASSWORD:?Must set COUCHBASE_PASSWORD in .env}"
   : "${COUCHBASE_HOST:?Must set COUCHBASE_HOST in .env}"
   : "${COUCHBASE_PORT:=8091}"
 
+  TMP_EXPORT="$(mktemp)"
   OUTPUT="couchbase_rbac.json"
-  curl -s -u "${COUCHBASE_USERNAME}:${COUCHBASE_PASSWORD}" \
+
+  if curl -s -u "${COUCHBASE_USERNAME}:${COUCHBASE_PASSWORD}" \
     "http://${COUCHBASE_HOST}:${COUCHBASE_PORT}/settings/rbac/users/local" \
-    | jq '.' > "$OUTPUT"
-  if [[ $? -eq 0 ]]; then
+    | jq '.' > "$TMP_EXPORT"
+  then
+    # Filter as per --include/--exclude
+    FILTERED=$(jq -c '.[]' "$TMP_EXPORT" | while read -r obj; do
+      id=$(jq -r '.id' <<<"$obj")
+      if should_include_id "$id"; then
+        echo "$obj"
+      fi
+    done | jq -s '.')
+
+    echo "$FILTERED" > "$OUTPUT"
+    rm -f "$TMP_EXPORT"
     summary "✅ Exported Couchbase RBAC users to $OUTPUT"
     echo
   else
@@ -108,7 +180,10 @@ if $DO_APPLY; then
   fi
 
   # Fetch all IDs (once)
-  ALL_IDS=($(jq -r '.[].id' "$OUTPUT"))
+  ALL_IDS=()
+  while IFS= read -r id; do
+    should_include_id "$id" && ALL_IDS+=("$id")
+  done < <(jq -r '.[].id' "$OUTPUT")
 
   # Auto-detect if not set
   if [[ -z "$READ_ID" ]]; then
@@ -133,69 +208,69 @@ if $DO_APPLY; then
   # Print what will be used
   summary "ℹ️  Using readonly user ID:  $READ_ID"
   summary "ℹ️  Using readwrite user ID: $WRITE_ID"
-  echo 
+  echo
 
   generate_vault_role() {
-  local ROLE_ID="$1"
-  local ROLE_NAME="$2"
-  local ROLES
-  ROLES=$(jq -r --arg id "$ROLE_ID" '
+    local ROLE_ID="$1"
+    local ROLE_NAME="$2"
+    local ROLES
+    ROLES=$(jq -r --arg id "$ROLE_ID" '
     .[] | select(.id==$id) | .roles[] |
     "\(.role) \(.bucket_name // "*")"
   ' "$OUTPUT" | sort | uniq)
 
-  if [[ -z "$ROLES" ]]; then
-    echo "❌ No roles found for user $ROLE_ID"
-    exit 3
-  fi
-
-  # Build creation_statements JSON
-  local JSON="["
-  local first=1
-  while read -r line; do
-    [[ -z "$line" ]] && continue
-    ROLE=$(awk '{print $1}' <<< "$line")
-    BUCKET=$(awk '{print $2}' <<< "$line")
-    [[ $first -eq 0 ]] && JSON+=", "
-    JSON+="{ \"role\": \"$ROLE\", \"bucket_name\": \"$BUCKET\" }"
-    first=0
-  done <<< "$ROLES"
-  JSON+="]"
-
-  # Only show full Vault command in non-quiet mode
-  if ! $DO_QUIET; then
-    echo
-    echo "Vault command for '$ROLE_NAME' role (from user $ROLE_ID):"
-    echo "vault write database/roles/$ROLE_NAME \\"
-    echo "  db_name=\"couchbase\" \\"
-    echo "  creation_statements='{\"roles\": $JSON}' \\"
-    echo "  default_ttl=\"1h\" \\"
-    echo "  max_ttl=\"24h\""
-  fi
-
-  if ! $DO_DRYRUN; then
-    # --- Backup before updating ---
-    SNAPSHOT_FILE="vault_role_backup_${ROLE_NAME}_$(date +%Y%m%d_%H%M%S).json"
-    if vault read -format=json database/roles/$ROLE_NAME > "$SNAPSHOT_FILE" 2>/dev/null; then
-      summary "📦 Previous Vault role for '$ROLE_NAME' backed up to $SNAPSHOT_FILE"
-    else
-      summary "ℹ️  No previous Vault role for '$ROLE_NAME' (nothing to back up)."
+    if [[ -z "$ROLES" ]]; then
+      echo "❌ No roles found for user $ROLE_ID"
+      exit 3
     fi
-    # --- Apply new role ---
-    summary "⚠️  Applying role '$ROLE_NAME' to Vault..."
-    vault write database/roles/$ROLE_NAME \
-      db_name="couchbase" \
-      creation_statements="{\"roles\": $JSON}" \
-      default_ttl="1h" \
-      max_ttl="24h" >/dev/null
-    summary "✅ Applied $ROLE_NAME role!"
-    echo
-  else
+
+    # Build creation_statements JSON
+    local JSON="["
+    local first=1
+    while read -r line; do
+      [[ -z "$line" ]] && continue
+      ROLE=$(awk '{print $1}' <<<"$line")
+      BUCKET=$(awk '{print $2}' <<<"$line")
+      [[ $first -eq 0 ]] && JSON+=", "
+      JSON+="{ \"role\": \"$ROLE\", \"bucket_name\": \"$BUCKET\" }"
+      first=0
+    done <<<"$ROLES"
+    JSON+="]"
+
+    # Only show full Vault command in non-quiet mode
     if ! $DO_QUIET; then
-      echo "📝 (dry-run) Not applied."
+      echo
+      echo "Vault command for '$ROLE_NAME' role (from user $ROLE_ID):"
+      echo "vault write database/roles/$ROLE_NAME \\"
+      echo "  db_name=\"couchbase\" \\"
+      echo "  creation_statements='{\"roles\": $JSON}' \\"
+      echo "  default_ttl=\"1h\" \\"
+      echo "  max_ttl=\"24h\""
     fi
-  fi
-}
+
+    if ! $DO_DRYRUN; then
+      # --- Backup before updating ---
+      SNAPSHOT_FILE="vault_role_backup_${ROLE_NAME}_$(date +%Y%m%d_%H%M%S).json"
+      if vault read -format=json database/roles/"$ROLE_NAME" >"$SNAPSHOT_FILE" 2>/dev/null; then
+        summary "📦 Previous Vault role for '$ROLE_NAME' backed up to $SNAPSHOT_FILE"
+      else
+        summary "ℹ️  No previous Vault role for '$ROLE_NAME' (nothing to back up)."
+      fi
+      # --- Apply new role ---
+      summary "⚠️  Applying role '$ROLE_NAME' to Vault..."
+      vault write database/roles/"$ROLE_NAME" \
+        db_name="couchbase" \
+        creation_statements="{\"roles\": $JSON}" \
+        default_ttl="1h" \
+        max_ttl="24h" >/dev/null
+      summary "✅ Applied $ROLE_NAME role!"
+      echo
+    else
+      if ! $DO_QUIET; then
+        echo "📝 (dry-run) Not applied."
+      fi
+    fi
+  }
 
   generate_vault_role "$READ_ID" "readonly"
   generate_vault_role "$WRITE_ID" "readwrite"
@@ -211,9 +286,12 @@ fi
 
 human_duration() {
   local S=$1
-  (( S < 60 )) && { echo "${S}s"; return; }
-  local M=$(( S / 60 ))
-  local S2=$(( S % 60 ))
+  ((S < 60)) && {
+    echo "${S}s"
+    return
+  }
+  local M=$((S / 60))
+  local S2=$((S % 60))
   echo "${M}m ${S2}s"
 }
 END_TS=$(date +%s)
